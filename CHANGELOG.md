@@ -1,3 +1,20 @@
+## [2.6.8] - 2026-06-29 — Simplicio Loop: UI congruencia + fixes de rutas dinámicas
+
+### Fixed
+- Ruta dinámica A2A `PATCH /api/a2a/cards/:id` usaba comparación literal contra el placeholder `:id`. Cambiado a `pathname.startsWith('/api/a2a/cards/')` con extracción del ID vía `split('/').pop()`.
+- View `agentic-rag` del HTML no tenía renderer en `public/static/app.js`; agregado `renderAgenticRAG` y `runAgenticRAG` llamando `POST /api/rag/agentic`.
+
+### Audit
+- 55 views del HTML mapeados a funciones en `RENDERERS`.
+- 119 llamadas `api(METHOD, '/api/...')` del frontend verificadas contra endpoints backend (224+ rutas, 83 dinámicas con `startsWith`).
+- 0 rutas con placeholder literal `:id`.
+
+### Verification
+- `npm run checks`: ✅
+- `npm run smoke`: 150/150
+- `node tests/real-cases.mjs`: 54/54
+- `npm test`: 216/216 pass, 1 skip (Obsidian real)
+
 ## [2.6.8] - 2026-06-29 — Agent Tracing OTel real con costos por model/provider
 
 ### Agent Tracing Service
