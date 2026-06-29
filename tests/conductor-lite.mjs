@@ -10,10 +10,11 @@ const tenant = 'tenant_' + randomUUID();
 function resetTables() {
   conductorLite.ensureTables();
   durableExec.ensureTables();
-  db.exec('DELETE FROM conductor_workflows');
-  db.exec('DELETE FROM conductor_runs');
-  db.exec('DELETE FROM durable_executions');
-  db.exec('DELETE FROM durable_execution_events');
+  // Tenant-scoped cleanup to avoid clobbering parallel test files sharing the same DB.
+  db.prepare('DELETE FROM conductor_workflows WHERE tenant_id = ?').run(tenant);
+  db.prepare('DELETE FROM conductor_runs WHERE tenant_id = ?').run(tenant);
+  db.prepare('DELETE FROM durable_executions WHERE tenant_id = ?').run(tenant);
+  db.prepare('DELETE FROM durable_execution_events WHERE execution_id IN (SELECT id FROM durable_executions WHERE tenant_id = ?)').run(tenant);
 }
 
 describe('conductor-lite', () => {
@@ -46,12 +47,12 @@ describe('conductor-lite', () => {
       enrich: (input) => { calls.push('enrich'); return { input }; },
       notify: (input) => { calls.push('notify'); return { sent: true }; }
     };
-    const { runId } = conductorLite.startRun(tenant, { workflow_id: wf.id, context: { lead: 'x' } }, durableExec);
-    const first = await conductorLite.advanceRun(tenant, runId, durableExec, handlers);
+    const { runId } = conductorLite.startRun(tenant, wf.id, { lead: 'x' }, durableExec);
+    const first = await conductorLite.resumeRun(tenant, runId, { durableExec, stepHandlers: handlers });
     assert.equal(first.status, 'completed');
 
     // Re-advance must replay from events without re-executing handlers.
-    const second = await conductorLite.advanceRun(tenant, runId, durableExec, handlers);
+    const second = await conductorLite.resumeRun(tenant, runId, { durableExec, stepHandlers: handlers });
     assert.equal(second.status, 'completed');
     assert.equal(calls.length, 3, 'handlers should only execute once per step');
   });
@@ -76,8 +77,8 @@ describe('conductor-lite', () => {
       right: () => { order.push('right'); return { right: 1 }; },
       join: (input) => { order.push('join'); return { input }; }
     };
-    const { runId } = conductorLite.startRun(tenant, { workflow_id: wf.id }, durableExec);
-    const result = await conductorLite.advanceRun(tenant, runId, durableExec, handlers);
+    const { runId } = conductorLite.startRun(tenant, wf.id, {}, durableExec);
+    const result = await conductorLite.resumeRun(tenant, runId, { durableExec, stepHandlers: handlers });
     assert.equal(result.status, 'completed');
     assert.equal(order[0], 'split');
     assert.ok(order.indexOf('join') > order.indexOf('left'));
@@ -99,16 +100,16 @@ describe('conductor-lite', () => {
         return { recovered: true };
       }
     };
-    const { runId, executionId } = conductorLite.startRun(tenant, { workflow_id: wf.id }, durableExec);
+    const { runId, executionId } = conductorLite.startRun(tenant, wf.id, {}, durableExec);
     // First advance: 'ok' completes, 'failOnce' records failed event.
-    const bad = await conductorLite.advanceRun(tenant, runId, durableExec, handlers);
+    const bad = await conductorLite.resumeRun(tenant, runId, { durableExec, stepHandlers: handlers });
     assert.equal(bad.status, 'failed');
 
     // Repair durable execution to pending to simulate retry.
     db.prepare('UPDATE durable_executions SET status=?, attempts=? WHERE id=?').run('pending', 0, executionId);
 
     // Second advance should replay ok and re-run failOnce.
-    const good = await conductorLite.advanceRun(tenant, runId, durableExec, handlers);
+    const good = await conductorLite.resumeRun(tenant, runId, { durableExec, stepHandlers: handlers });
     assert.equal(good.status, 'completed');
     assert.equal(failCount, 2);
   });

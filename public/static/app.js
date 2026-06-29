@@ -883,8 +883,21 @@ async function renderAAAS(el) {
         <option value="fast">Fast</option>
         <option value="quality">Quality</option>
       </select>
+      <select id="router-preferred">
+        <option value="">-- preferencia (auto) --</option>
+        <option value="ollama">Ollama</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <input id="router-max-cost" type="number" step="0.01" placeholder="max cost per 1M tokens" />
+      <label><input id="router-fallback" type="checkbox" checked /> Fallback automático</label>
       <button onclick="runRouter()">▶️ Generar</button>
       <pre id="router-output"></pre>
+    </div>
+    <div class="card">
+      <h3>Predicción de costo</h3>
+      <input id="cost-prompt" placeholder="Prompt para estimar" />
+      <button onclick="estimateRouterCost()">💰 Estimar</button>
+      <pre id="cost-estimate"></pre>
     </div>
     <div class="card">
       <h3>Uso y costos</h3>
@@ -925,15 +938,29 @@ async function deleteProvider(id) {
 }
 
 async function runRouter() {
-  const r = await api('POST', '/api/aaas/generate', {
+  const r = await api('POST', '/api/llm/generate', {
     prompt: document.getElementById('router-prompt').value,
-    strategy: document.getElementById('router-strategy').value
+    strategy: document.getElementById('router-strategy').value,
+    preferred: document.getElementById('router-preferred').value || undefined,
+    maxCostPer1M: parseFloat(document.getElementById('router-max-cost').value || 'NaN') || undefined,
+    fallback: document.getElementById('router-fallback').checked
   });
   document.getElementById('router-output').textContent = JSON.stringify(r, null, 2);
+  loadUsage();
+}
+
+async function estimateRouterCost() {
+  const prompt = document.getElementById('cost-prompt').value;
+  if (!prompt) return;
+  const model = await api('GET', `/api/llm/models?complexity=medium`);
+  const selected = model.selected;
+  const tokens = Math.ceil(prompt.length / 4);
+  const cost = (tokens / 1_000_000) * (selected.costPer1M || 0);
+  document.getElementById('cost-estimate').textContent = `Modelo seleccionado: ${selected.name}\nTokens estimados: ${tokens}\nCosto estimado: $${cost.toFixed(6)}`;
 }
 
 async function loadUsage() {
-  const r = await api('GET', '/api/aaas/usage');
+  const r = await api('GET', '/api/llm/stats');
   document.getElementById('usage-stats').textContent = JSON.stringify(r.stats, null, 2);
 }
 
@@ -1657,24 +1684,75 @@ async function escalateTicket() {
   document.getElementById('ho-output').textContent = JSON.stringify(r.handoff, null, 2);
 }
 
-async function renderDurableWorkflows(el) {
+async function renderConductorWorkflows(el) {
   el.innerHTML = `
-    <h2>⚙️ Durable Workflows</h2>
+    <h2>⚙️ Conductor-lite Workflows</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="card-header">Definir workflow DAG</div>
+        <input id="wf-name" placeholder="workflow name" value="approval" />
+        <textarea id="wf-dag" rows="6">{\n  "steps": [\n    { "id": "request", "action": "ticket.create", "deps": [] },\n    { "id": "approve", "action": "ticket.approve", "deps": ["request"] },\n    { "id": "notify", "action": "email.send", "deps": ["approve"] }\n  ]\n}</textarea>
+        <button onclick="createConductorWorkflow()">Definir</button>
+        <button class="secondary" onclick="listConductorWorkflows()">Listar</button>
+      </div>
+      <div class="card">
+        <div class="card-header">Ejecutar / inspeccionar run</div>
+        <select id="run-wf-id"><option value="">-- seleccionar workflow --</option></select>
+        <input id="run-context" value='{"user":"alice"}' />
+        <button onclick="startConductorRun()">Iniciar run</button>
+        <input id="run-id" placeholder="run id" />
+        <button class="secondary" onclick="resumeConductorRun()">Resume</button>
+        <button class="secondary" onclick="getConductorRun()">Ver run</button>
+      </div>
+    </div>
     <div class="card">
-      <input id="wf-name" placeholder="workflow name" />
-      <input id="wf-steps" value='["plan","build","test"]' />
-      <button onclick="createWorkflow()">Crear</button>
-      <button onclick="listWorkflows()">Listar</button>
+      <div class="card-header">Output</div>
       <pre id="wf-output"></pre>
     </div>`;
+  await listConductorWorkflows(true);
 }
-async function createWorkflow() {
-  const r = await api('POST', '/api/workflows/durable', { name: document.getElementById('wf-name').value, steps: JSON.parse(document.getElementById('wf-steps').value), max_retries: 2, compensation: ['rollback'] });
+
+async function createConductorWorkflow() {
+  const r = await api('POST', '/api/conductor/workflows', { name: document.getElementById('wf-name').value, dag: JSON.parse(document.getElementById('wf-dag').value) });
   document.getElementById('wf-output').textContent = JSON.stringify(r.workflow, null, 2);
+  await listConductorWorkflows(true);
 }
-async function listWorkflows() {
-  const r = await api('GET', '/api/workflows/durable');
+
+async function listConductorWorkflows(fillSelect = false) {
+  const r = await api('GET', '/api/conductor/workflows');
   document.getElementById('wf-output').textContent = JSON.stringify(r.workflows, null, 2);
+  if (fillSelect) {
+    const sel = document.getElementById('run-wf-id');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- seleccionar workflow --</option>' + (r.workflows || []).map(w => `<option value="${esc(w.id)}">${esc(w.name)} (${w.id.slice(0,8)})</option>`).join('');
+  }
+}
+
+async function startConductorRun() {
+  const wfId = document.getElementById('run-wf-id').value;
+  if (!wfId) return alert('Selecciona un workflow');
+  const r = await api('POST', `/api/conductor/workflows/${esc(wfId)}/runs`, { context: JSON.parse(document.getElementById('run-context').value || '{}') });
+  document.getElementById('wf-output').textContent = JSON.stringify(r, null, 2);
+  if (r.run?.runId) document.getElementById('run-id').value = r.run.runId;
+}
+
+async function resumeConductorRun() {
+  const id = document.getElementById('run-id').value;
+  if (!id) return;
+  const r = await api('POST', `/api/conductor/runs/${esc(id)}/resume`, {});
+  document.getElementById('wf-output').textContent = JSON.stringify(r, null, 2);
+}
+
+async function getConductorRun() {
+  const id = document.getElementById('run-id').value;
+  if (!id) return;
+  const r = await api('GET', `/api/conductor/runs/${esc(id)}`);
+  document.getElementById('wf-output').textContent = JSON.stringify(r, null, 2);
+}
+
+async function renderDurableWorkflows(el) {
+  // Backward-compatible alias: Conductor-lite is the new durable workflow UI.
+  await renderConductorWorkflows(el);
 }
 
 async function renderDurableExecutions(el) {
@@ -2049,24 +2127,69 @@ async function registerMCPGatewayTool() {
     server_id: document.getElementById('mcp-gw-server').value,
     tool_name: document.getElementById('mcp-gw-tool').value,
     rate_limit_rpm: parseInt(document.getElementById('mcp-gw-rpm').value),
-    cost_per_call: parseFloat(document.getElementById('mcp-gw-cost').value)
+    cost_per_call: parseFloat(document.getElementById('mcp-gw-cost').value),
+    metadata: { category: 'mcp', registered_via: 'ui' }
   });
   document.getElementById('mcp-gw-output').textContent = JSON.stringify(r, null, 2);
+  await listMCPGatewayTools();
 }
+
 async function listMCPGatewayTools() {
   const r = await api('GET', '/api/mcp/gateway/tools');
-  document.getElementById('mcp-gw-list').textContent = JSON.stringify(r.tools, null, 2);
+  const rows = (r.tools || []).map(t => `
+    <tr>
+      <td>${esc(t.server_id)}</td>
+      <td>${esc(t.tool_name)}</td>
+      <td>${t.rate_limit_rpm} rpm</td>
+      <td>$${t.cost_per_call.toFixed(3)}</td>
+      <td><span class="badge ${t.enabled ? 'success' : 'muted'}">${t.enabled ? 'on' : 'off'}</span></td>
+      <td><button class="ghost" onclick="document.getElementById('mcp-gw-tool-id').value='${esc(t.id)}';">Usar</button>
+        <button class="ghost danger" onclick="deleteMCPGatewayTool('${esc(t.id)}')">🗑️</button></td>
+    </tr>`).join('');
+  document.getElementById('mcp-gw-list').innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Server</th><th>Tool</th><th>Rate</th><th>Cost/call</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6">Sin tools</td></tr>'}</tbody>
+    </table>`;
 }
+
+async function deleteMCPGatewayTool(id) {
+  if (!confirm('¿Eliminar tool?')) return;
+  const r = await api('DELETE', `/api/mcp/gateway/tools/${id}`);
+  document.getElementById('mcp-gw-output').textContent = JSON.stringify(r, null, 2);
+  await listMCPGatewayTools();
+}
+
+async function toggleMCPGatewayTool(id, enabled) {
+  const r = await api('PATCH', `/api/mcp/gateway/tools/${id}`, { enabled });
+  document.getElementById('mcp-gw-output').textContent = JSON.stringify(r, null, 2);
+  await listMCPGatewayTools();
+}
+
 async function callMCPGatewayTool() {
   const r = await api('POST', '/api/mcp/gateway/call', {
     tool_id: document.getElementById('mcp-gw-tool-id').value,
     input: JSON.parse(document.getElementById('mcp-gw-input').value || '{}')
   });
   document.getElementById('mcp-gw-output').textContent = JSON.stringify(r, null, 2);
+  await loadMCPGatewayTotals();
 }
+
 async function loadMCPGatewayTotals() {
   const r = await api('GET', '/api/mcp/gateway/totals');
-  document.getElementById('mcp-gw-list').textContent = JSON.stringify(r.totals, null, 2);
+  const rows = (r.totals || []).map(t => `
+    <tr>
+      <td>${esc(t.server_id)}</td>
+      <td>${esc(t.tool_name)}</td>
+      <td>${t.calls}</td>
+      <td>$${(t.total_cost || 0).toFixed(3)}</td>
+    </tr>`).join('');
+  document.getElementById('mcp-gw-list').innerHTML += `
+    <h3>Totales por tool</h3>
+    <table class="data-table">
+      <thead><tr><th>Server</th><th>Tool</th><th>Llamadas</th><th>Costo total</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4">Sin datos</td></tr>'}</tbody>
+    </table>`;
 }
 
 if (token) show('dashboard');
@@ -2188,11 +2311,13 @@ async function listRemediation() {
 
 async function renderFailurePrediction(el) {
   el.innerHTML = `
-    <h2>🔮 AI-Driven Failure Prediction</h2>
+    <h2>🔮 AI-Driven Failure Prediction + Self-Healing</h2>
     <div class="card">
       <button onclick="scanFailurePrediction()">Scan Tenant</button>
       <button onclick="listFailurePredictions()">Predicciones</button>
       <button onclick="recordFailureSignal()">Inyectar Señal</button>
+      <button class="secondary" onclick="runSelfHealing()">🩹 Auto-Remediar</button>
+      <button class="secondary" onclick="listHealingActions()">Acciones de healing</button>
       <pre id="fp-output"></pre>
     </div>
     <div class="card">
@@ -2209,8 +2334,41 @@ async function renderFailurePrediction(el) {
       <input id="fp-threshold" type="number" step="0.01" placeholder="threshold" value="0.7" />
       <button onclick="predictFailure()">Predecir</button>
       <pre id="fp-predict"></pre>
+    </div>
+    <div class="card">
+      <div class="card-header">Acciones de healing pendientes</div>
+      <div id="healing-list" class="table-wrap"></div>
     </div>`;
+  await listHealingActions();
 }
+
+async function runSelfHealing() {
+  const r = await api('POST', '/api/self-healing/heal', {});
+  document.getElementById('fp-output').textContent = JSON.stringify(r, null, 2);
+  await listHealingActions();
+}
+
+async function applyHealingAction(id) {
+  const r = await api('POST', `/api/self-healing/actions/${id}`, {});
+  document.getElementById('fp-output').textContent = JSON.stringify(r, null, 2);
+  await listHealingActions();
+}
+
+async function listHealingActions() {
+  const r = await api('GET', '/api/self-healing/actions');
+  const rows = (r.actions || []).map(a => `
+    <tr>
+      <td>${esc(a.action)}</td>
+      <td>${esc(a.target_type)} · ${esc(a.symptom)}</td>
+      <td><button class="ghost" onclick="applyHealingAction('${esc(a.id)}')">Aplicar</button></td>
+    </tr>`).join('');
+  document.getElementById('healing-list').innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Acción</th><th>Objetivo · Síntoma</th><th>Aplicar</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3">Sin acciones</td></tr>'}</tbody>
+    </table>`;
+}
+
 async function scanFailurePrediction() {
   const r = await api('POST', '/api/failure-prediction/scan', {});
   document.getElementById('fp-output').textContent = JSON.stringify(r, null, 2);
@@ -2244,27 +2402,93 @@ async function predictFailure() {
 
 async function renderReBAC(el) {
   el.innerHTML = `
-    <h2>🔐 ReBAC / Zanzibar-lite AuthZ</h2>
-    <div class="card">
-      <div class="form-row">
+    <h2>🔐 ReBAC + ABAC — Unified AuthZ</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="card-header">ReBAC Tuple (Zanzibar-lite)</div>
         <input id="rebac-obj-type" placeholder="object_type" value="document" />
         <input id="rebac-obj-id" placeholder="object_id" value="doc-1" />
         <input id="rebac-relation" placeholder="relation" value="viewer" />
         <input id="rebac-user-type" placeholder="user_type" value="user" />
         <input id="rebac-user-id" placeholder="user_id" value="u-1" />
+        <div class="form-row">
+          <button onclick="writeReBAC()">Write Tuple</button>
+          <button onclick="deleteReBAC()">Delete Tuple</button>
+          <button onclick="expandReBAC()">Expand</button>
+          <button onclick="checkReBAC()">Check</button>
+          <button onclick="snapshotReBAC()">Snapshot</button>
+        </div>
+        <pre id="rebac-output"></pre>
       </div>
-      <button onclick="writeReBAC()">Write Tuple</button>
-      <button onclick="deleteReBAC()">Delete Tuple</button>
-      <button onclick="expandReBAC()">Expand</button>
-      <pre id="rebac-output"></pre>
+      <div class="card">
+        <div class="card-header">ABAC Policy Builder</div>
+        <input id="abac-name" placeholder="policy name" value="support-read" />
+        <input id="abac-resource" placeholder="resource" value="ticket" />
+        <input id="abac-action" placeholder="action" value="read" />
+        <select id="abac-effect">
+          <option value="allow">Allow</option>
+          <option value="deny">Deny</option>
+        </select>
+        <input id="abac-priority" type="number" placeholder="priority" value="10" />
+        <textarea id="abac-conditions" rows="4" placeholder='{"subject.role":["admin","agent"]}'>{"subject.role":["admin","agent"]}</textarea>
+        <button onclick="createABACPolicy()">Crear política</button>
+        <button onclick="listABACPolicies()">Listar</button>
+        <pre id="abac-output"></pre>
+      </div>
     </div>
     <div class="card">
-      <button onclick="checkReBAC()">Check</button>
-      <button onclick="snapshotReBAC()">Snapshot</button>
-      <button onclick="listReBAC()">Listar Tuples</button>
-      <pre id="rebac-check"></pre>
+      <div class="card-header">Evaluación unificada</div>
+      <input id="eval-resource" placeholder="resource" value="ticket" />
+      <input id="eval-action" placeholder="action" value="read" />
+      <textarea id="eval-subject" placeholder='{"role":"agent","department":"support"}'>{"role":"agent","department":"support"}</textarea>
+      <button onclick="evaluateABAC()">Evaluar ABAC</button>
+      <button onclick="checkReBAC()">Evaluar ReBAC</button>
+      <pre id="eval-output"></pre>
+    </div>
+    <div class="card">
+      <button onclick="listReBAC()">Listar Tuples ReBAC</button>
+      <div id="rebac-list" class="table-wrap"></div>
     </div>`;
 }
+
+async function createABACPolicy() {
+  const r = await api('POST', '/api/abac/policies', {
+    name: document.getElementById('abac-name').value,
+    resource: document.getElementById('abac-resource').value,
+    action: document.getElementById('abac-action').value,
+    effect: document.getElementById('abac-effect').value,
+    priority: parseInt(document.getElementById('abac-priority').value || '0'),
+    conditions: JSON.parse(document.getElementById('abac-conditions').value || '{}')
+  });
+  document.getElementById('abac-output').textContent = JSON.stringify(r, null, 2);
+}
+
+async function listABACPolicies() {
+  const r = await api('GET', '/api/abac/policies');
+  const rows = (r.policies || []).map(p => `
+    <tr>
+      <td>${esc(p.name)}</td>
+      <td>${esc(p.resource)}:${esc(p.action)}</td>
+      <td><span class="badge ${p.effect}">${p.effect}</span></td>
+      <td>${p.priority}</td>
+      <td><pre>${esc(JSON.stringify(p.conditions))}</pre></td>
+    </tr>`).join('');
+  document.getElementById('abac-output').innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Nombre</th><th>Recurso:Acción</th><th>Efecto</th><th>Prioridad</th><th>Condiciones</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5">Sin políticas</td></tr>'}</tbody>
+    </table>`;
+}
+
+async function evaluateABAC() {
+  const r = await api('POST', '/api/abac/evaluate', {
+    resource: document.getElementById('eval-resource').value,
+    action: document.getElementById('eval-action').value,
+    subject: JSON.parse(document.getElementById('eval-subject').value || '{}')
+  });
+  document.getElementById('eval-output').textContent = JSON.stringify(r, null, 2);
+}
+
 async function writeReBAC() {
   const r = await api('POST', '/api/authz/tuples', {
     object_type: document.getElementById('rebac-obj-type').value,
@@ -2511,3 +2735,5 @@ function getCookie(name) {
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
 }
+
+

@@ -93,6 +93,7 @@ import durableExecutionService from './src/services/durableExecutionService.js';
 import mcpGatewayService from './src/services/mcpGatewayService.js';
 import failurePredictionService from './src/services/failurePredictionService.js';
 import authorizationService from './src/services/authorizationService.js';
+import conductorLiteService from './src/services/conductorLiteService.js';
 
 const __dirname = (() => {
   try { return fileURLToPath(new URL('.', import.meta.url)); } catch {}
@@ -261,6 +262,19 @@ const server = createServer(async (req, res) => {
     }
     if (pathname === '/api/self-healing/status' && req.method === 'GET') {
       return json(res, { success: true, status: selfHealingService.status() });
+    }
+    if (pathname === '/api/self-healing/heal' && req.method === 'POST') {
+      const detected = selfHealingService.detectAndHeal(user.tenant_id);
+      const applied = detected.map(a => selfHealingService.applyHealing(user.tenant_id, a.id));
+      return json(res, { success: true, detected, applied });
+    }
+    if (pathname.startsWith('/api/self-healing/actions/') && req.method === 'POST') {
+      const id = pathname.split('/')[4];
+      const result = selfHealingService.applyHealing(user.tenant_id, id);
+      return json(res, result);
+    }
+    if (pathname === '/api/self-healing/actions' && req.method === 'GET') {
+      return json(res, { success: true, actions: selfHealingService.listHealing(user.tenant_id, parseInt(url.searchParams.get('limit') || '50')) });
     }
     if (pathname === '/api/tracing/spans' && req.method === 'GET') {
       return json(res, { success: true, spans: tracingService.listSpans(user.tenant_id, { limit: 20 }) });
@@ -582,9 +596,9 @@ const server = createServer(async (req, res) => {
       return json(res, { success: true, complexity: classifyComplexity(prompt) });
     }
     if (pathname === '/api/llm/generate' && req.method === 'POST') {
-      const { prompt, complexity = 'medium', preferred } = body || {};
+      const { prompt, complexity = 'medium', preferred, strategy = 'balanced', maxCostPer1M, fallback = true } = body || {};
       if (!prompt) return json(res, { success: false, error: 'prompt requerido' }, 400);
-      const r = await llmGenerate(prompt, { complexity, preferred, tenant_id: user.tenant_id });
+      const r = await llmGenerate(prompt, { complexity, preferred, strategy, maxCostPer1M, fallback, tenant_id: user.tenant_id });
       return json(res, { success: true, ...r });
     }
 
@@ -1197,6 +1211,29 @@ const server = createServer(async (req, res) => {
     }
     if (pathname === '/api/workflows/durable' && req.method === 'GET') {
       return json(res, { success: true, workflows: durableWorkflowService.list(user.tenant_id) });
+    }
+
+    // Conductor-lite Workflows
+    if (pathname === '/api/conductor/workflows' && req.method === 'POST') {
+      const wf = conductorLiteService.defineWorkflow(user.tenant_id, body);
+      return json(res, { success: true, workflow: wf });
+    }
+    if (pathname === '/api/conductor/workflows' && req.method === 'GET') {
+      return json(res, { success: true, workflows: conductorLiteService.listWorkflows(user.tenant_id) });
+    }
+    if (pathname.startsWith('/api/conductor/workflows/') && pathname.endsWith('/runs') && req.method === 'POST') {
+      const id = pathname.split('/')[4];
+      const run = conductorLiteService.startRun(user.tenant_id, id, body);
+      return json(res, { success: true, run });
+    }
+    if (pathname.startsWith('/api/conductor/runs/') && req.method === 'GET') {
+      const id = pathname.split('/')[4];
+      return json(res, { success: true, run: conductorLiteService.getRun(user.tenant_id, id) });
+    }
+    if (pathname.startsWith('/api/conductor/runs/') && pathname.endsWith('/resume') && req.method === 'POST') {
+      const id = pathname.split('/')[4];
+      const run = conductorLiteService.resumeRun(user.tenant_id, id, body);
+      return json(res, { success: true, run });
     }
 
     // A2A cards
