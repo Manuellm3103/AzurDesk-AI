@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  azurdesk-ai:
+    build: .
+    ports:
+      - "5200:5200"
+    environment:
+      - PORT=5200
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET env var}
+      - DEMO_PASSWORD=${DEMO_PASSWORD:-admin123}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

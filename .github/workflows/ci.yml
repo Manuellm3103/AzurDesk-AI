@@ -1,0 +1,54 @@
+name: AzurDesk AI CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint / syntax check
+        run: npm run checks
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Start server and run smoke tests
+        env:
+          JWT_SECRET: ci-test-secret-32chars-minimum
+          AAAS_MASTER_KEY: ci-test-master-key-32chars
+          NODE_ENV: production
+        run: |
+          node server.mjs &
+          SERVER_PID=$!
+          sleep 3
+          node tests/smoke.mjs
+          SMOKE_EXIT=$?
+          kill $SERVER_PID
+          exit $SMOKE_EXIT
+        timeout-minutes: 3
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            *.log
+            npm-debug.log*

@@ -1,0 +1,9 @@
+node_modules/
+data/
+logs/
+certs/
+.env
+*.log
+ml-models/*.bin
+dist/
+.DS_Store

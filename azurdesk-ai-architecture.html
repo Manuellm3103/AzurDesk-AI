@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AzurDesk AI Architecture Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.orange { background: #fb923c; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>AzurDesk AI Architecture</h1>
+      </div>
+      <p class="subtitle">Multi-agent helpdesk with ML classification, legal module, mesh discovery, capacity planning and Ollama Cloud integration</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1000 720">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="arrowhead-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee" />
+          </marker>
+          <marker id="arrowhead-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399" />
+          </marker>
+          <marker id="arrowhead-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- Users -->
+        <rect x="20" y="300" width="90" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="65" y="325" fill="white" font-size="11" font-weight="600" text-anchor="middle">Users</text>
+        <text x="65" y="343" fill="#94a3b8" font-size="9" text-anchor="middle">Browser</text>
+
+        <!-- Auth boundary -->
+        <rect x="130" y="230" width="120" height="140" rx="8" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="138" y="244" fill="#fb7185" font-size="8">JWT Auth</text>
+        <rect x="140" y="300" width="100" height="60" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="190" y="325" fill="white" font-size="11" font-weight="600" text-anchor="middle">Auth</text>
+        <text x="190" y="343" fill="#94a3b8" font-size="9" text-anchor="middle">Login / JWT</text>
+
+        <!-- Node.js Region -->
+        <rect x="270" y="40" width="710" height="660" rx="12" fill="rgba(6, 78, 59, 0.05)" stroke="#34d399" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="282" y="58" fill="#34d399" font-size="10" font-weight="600">AzurDesk AI Node.js 24 ESM</text>
+
+        <!-- Frontend -->
+        <rect x="290" y="520" width="180" height="100" rx="8" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="380" y="545" fill="white" font-size="12" font-weight="600" text-anchor="middle">Dashboard UI</text>
+        <text x="380" y="565" fill="#94a3b8" font-size="9" text-anchor="middle">Vanilla JS</text>
+        <text x="380" y="580" fill="#94a3b8" font-size="9" text-anchor="middle">Kanban · Legal · Mesh</text>
+        <text x="380" y="595" fill="#94a3b8" font-size="9" text-anchor="middle">Automaton · Capacity</text>
+
+        <!-- Static files -->
+        <rect x="300" y="620" width="160" height="50" rx="6" fill="rgba(8, 51, 68, 0.25)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="380" y="640" fill="white" font-size="10" font-weight="500" text-anchor="middle">public/</text>
+        <text x="380" y="655" fill="#94a3b8" font-size="9" text-anchor="middle">HTML · CSS · JS</text>
+
+        <!-- API Server -->
+        <rect x="500" y="90" width="130" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="565" y="115" fill="white" font-size="11" font-weight="600" text-anchor="middle">HTTP Router</text>
+        <text x="565" y="133" fill="#94a3b8" font-size="9" text-anchor="middle">server.mjs</text>
+
+        <!-- Helpdesk Service -->
+        <rect x="500" y="180" width="130" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="565" y="200" fill="white" font-size="10" font-weight="600" text-anchor="middle">Helpdesk</text>
+        <text x="565" y="215" fill="#94a3b8" font-size="9" text-anchor="middle">Tickets · ML</text>
+
+        <!-- Legal Service -->
+        <rect x="500" y="250" width="130" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="565" y="270" fill="white" font-size="10" font-weight="600" text-anchor="middle">Legal Cases</text>
+        <text x="565" y="285" fill="#94a3b8" font-size="9" text-anchor="middle">Approvals · SLA</text>
+
+        <!-- Automaton -->
+        <rect x="500" y="320" width="130" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="565" y="340" fill="white" font-size="10" font-weight="600" text-anchor="middle">Automaton</text>
+        <text x="565" y="355" fill="#94a3b8" font-size="9" text-anchor="middle">Rules · Actions</text>
+
+        <!-- Agent Mesh -->
+        <rect x="500" y="390" width="130" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="565" y="410" fill="white" font-size="10" font-weight="600" text-anchor="middle">Agent Mesh</text>
+        <text x="565" y="425" fill="#94a3b8" font-size="9" text-anchor="middle">Discovery · Rank</text>
+
+        <!-- Capacity Planner -->
+        <rect x="500" y="460" width="130" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="565" y="480" fill="white" font-size="10" font-weight="600" text-anchor="middle">Capacity</text>
+        <text x="565" y="495" fill="#94a3b8" font-size="9" text-anchor="middle">Forecast · Risk</text>
+
+        <!-- Database -->
+        <rect x="780" y="180" width="130" height="260" rx="8" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="845" y="205" fill="white" font-size="12" font-weight="600" text-anchor="middle">SQLite</text>
+        <text x="845" y="225" fill="#94a3b8" font-size="9" text-anchor="middle">better-sqlite3</text>
+        <text x="845" y="250" fill="#cbd5e1" font-size="8" text-anchor="middle">tickets</text>
+        <text x="845" y="265" fill="#cbd5e1" font-size="8" text-anchor="middle">agents</text>
+        <text x="845" y="280" fill="#cbd5e1" font-size="8" text-anchor="middle">legal_cases</text>
+        <text x="845" y="295" fill="#cbd5e1" font-size="8" text-anchor="middle">mesh_nodes</text>
+        <text x="845" y="310" fill="#cbd5e1" font-size="8" text-anchor="middle">automaton_rules</text>
+        <text x="845" y="325" fill="#cbd5e1" font-size="8" text-anchor="middle">users</text>
+        <text x="845" y="340" fill="#cbd5e1" font-size="8" text-anchor="middle">documents</text>
+        <text x="845" y="355" fill="#cbd5e1" font-size="8" text-anchor="middle">memory/kb</text>
+        <text x="845" y="370" fill="#cbd5e1" font-size="8" text-anchor="middle">swarm</text>
+        <text x="845" y="385" fill="#cbd5e1" font-size="8" text-anchor="middle">ollama_cloud</text>
+        <text x="845" y="400" fill="#cbd5e1" font-size="8" text-anchor="middle">websites/pages</text>
+
+        <!-- Ollama Cloud -->
+        <rect x="780" y="500" width="130" height="80" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="845" y="525" fill="white" font-size="11" font-weight="600" text-anchor="middle">Ollama Cloud</text>
+        <text x="845" y="545" fill="#94a3b8" font-size="9" text-anchor="middle">Proxy /api/generate</text>
+        <text x="845" y="560" fill="#94a3b8" font-size="9" text-anchor="middle">35+ models</text>
+        <text x="845" y="575" fill="#fbbf24" font-size="8" text-anchor="middle">External</text>
+
+        <!-- WebSocket -->
+        <rect x="660" y="90" width="100" height="60" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="710" y="115" fill="white" font-size="10" font-weight="600" text-anchor="middle">WebSocket</text>
+        <text x="710" y="133" fill="#94a3b8" font-size="9" text-anchor="middle">Chat · Voice · CUA</text>
+
+        <!-- Computer Use -->
+        <rect x="660" y="180" width="100" height="50" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="710" y="200" fill="white" font-size="10" font-weight="600" text-anchor="middle">Computer Use</text>
+        <text x="710" y="215" fill="#94a3b8" font-size="9" text-anchor="middle">CDP · pyautogui</text>
+
+        <!-- Arrows -->
+        <line x1="110" y1="330" x2="138" y2="330" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="240" y1="330" x2="290" y2="560" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead-cyan)"/>
+        <text x="245" y="430" fill="#94a3b8" font-size="8">auth cookie</text>
+
+        <line x1="470" y1="570" x2="500" y2="570" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead-cyan)"/>
+        <line x1="630" y1="570" x2="780" y2="310" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <line x1="565" y1="90" x2="565" y2="150" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead-emerald)"/>
+        <line x1="630" y1="120" x2="660" y2="120" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="760" y1="120" x2="780" y2="120" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <path d="M 710 240 L 710 280 L 780 280" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 710 205 L 780 205" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <line x1="630" y1="205" x2="780" y2="250" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="630" y1="275" x2="780" y2="265" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="630" y1="345" x2="780" y2="280" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="630" y1="415" x2="780" y2="295" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="630" y1="485" x2="780" y2="310" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <line x1="845" y1="440" x2="845" y2="500" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="855" y="470" fill="#94a3b8" font-size="8">LLM fallback</text>
+
+        <!-- Legend -->
+        <text x="720" y="62" fill="white" font-size="10" font-weight="600">Legend</text>
+        <rect x="720" y="74" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="742" y="82" fill="#94a3b8" font-size="8">Frontend</text>
+        <rect x="720" y="90" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="742" y="98" fill="#94a3b8" font-size="8">Backend</text>
+        <rect x="720" y="106" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="742" y="114" fill="#94a3b8" font-size="8">Database</text>
+        <rect x="720" y="122" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="742" y="130" fill="#94a3b8" font-size="8">External</text>
+        <rect x="720" y="138" width="16" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="742" y="146" fill="#94a3b8" font-size="8">Security</text>
+        <rect x="720" y="154" width="16" height="10" rx="2" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1"/>
+        <text x="742" y="162" fill="#94a3b8" font-size="8">Message Bus</text>
+        <line x1="720" y1="176" x2="736" y2="176" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="742" y="179" fill="#94a3b8" font-size="8">Auth Flow</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot emerald"></div><h3>Core Backend</h3></div>
+        <ul>
+          <li>• Node.js 24 ESM with single HTTP router</li>
+          <li>• better-sqlite3 for local SQLite storage</li>
+          <li>• Zod validation on critical POST endpoints</li>
+          <li>• JWT auth with bcrypt password hashing</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>AI Agents</h3></div>
+        <ul>
+          <li>• ML ticket classifier with compromise/nlp</li>
+          <li>• Agent Rebalance AI for load distribution</li>
+          <li>• Agent Mesh Discovery for expert escalation</li>
+          <li>• Capacity Planner for demand forecasting</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot violet"></div><h3>Data Layer</h3></div>
+        <ul>
+          <li>• Tickets, agents, users, documents</li>
+          <li>• Legal cases, tasks, notes, approvals</li>
+          <li>• Mesh nodes, automaton rules/runs/outbox</li>
+          <li>• Memory graph, KB graph, swarm protocol</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot amber"></div><h3>Integrations</h3></div>
+        <ul>
+          <li>• Ollama Cloud proxy for LLM generation</li>
+          <li>• WebSocket for chat, voice and computer use</li>
+          <li>• PDF/DOCX OCR via documentService</li>
+          <li>• Web builder with static site export</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">AzurDesk AI v1.0.0 · Emanuel Azur Corporativo · 2026</p>
+  </div>
+</body>
+</html>
