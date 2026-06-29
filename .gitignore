@@ -3,7 +3,7 @@ data/
 logs/
 certs/
 .env
-*.log
-ml-models/*.bin
-dist/
+.env.local
+*.zip
+*.tar.gz
 .DS_Store

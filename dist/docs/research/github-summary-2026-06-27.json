@@ -1,0 +1,921 @@
+[
+  {
+    "repo": "RightNow-AI/openfang",
+    "title": "<p align=\"center\">",
+    "desc": "<img src=\"public/assets/openfang-logo.png\" width=\"160\" alt=\"OpenFang Logo\" />",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "router",
+      "workflow",
+      "llm",
+      "sandbox",
+      "skill",
+      "autonomous",
+      "use",
+      "desktop",
+      "mcp",
+      "guardrail",
+      "multi-agent",
+      "team",
+      "cost"
+    ],
+    "chars": 20639
+  },
+  {
+    "repo": "rohitg00/agentmemory",
+    "title": "<p align=\"center\">",
+    "desc": "<img src=\"assets/banner.png\" alt=\"agentmemory — Persistent memory for AI coding agents\" width=\"720\" />",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "router",
+      "workflow",
+      "llm",
+      "sandbox",
+      "skill",
+      "use",
+      "desktop",
+      "mcp",
+      "handoff",
+      "trace",
+      "multi-agent",
+      "team",
+      "cost"
+    ],
+    "chars": 84879
+  },
+  {
+    "repo": "777genius/agent-teams-ai",
+    "title": "",
+    "desc": "<a href=\"https://agentteams.live/\">",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "rag",
+      "router",
+      "workflow",
+      "skill",
+      "autonomous",
+      "use",
+      "desktop",
+      "mcp",
+      "handoff",
+      "trace",
+      "team",
+      "cost",
+      "electron"
+    ],
+    "chars": 27683
+  },
+  {
+    "repo": "bytedance/deer-flow",
+    "title": "# 🦌 DeerFlow - 2.0",
+    "desc": "English | [中文](./README_zh.md) | [日本語](./README_ja.md) | [Français](./README_fr.md) | [Русский](./README_ru.md)",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "router",
+      "workflow",
+      "llm",
+      "sandbox",
+      "skill",
+      "computer",
+      "use",
+      "mcp",
+      "trace",
+      "multi-agent",
+      "kubernetes"
+    ],
+    "chars": 42755
+  },
+  {
+    "repo": "Runfusion/Fusion",
+    "title": "<div align=\"center\">",
+    "desc": "Describe what you want — a team of AI agents **plans, builds, reviews, and ships** it for you. Fusion is your software factory: an assembly line for code that runs across tasks, agents, missions, git,",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "workflow",
+      "llm",
+      "skill",
+      "autonomous",
+      "use",
+      "desktop",
+      "handoff",
+      "multi-agent",
+      "team",
+      "electron"
+    ],
+    "chars": 40147
+  },
+  {
+    "repo": "agenttier/agenttier",
+    "title": "<p align=\"center\">",
+    "desc": "<h1 align=\"center\">AgentTier</h1>",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "router",
+      "workflow",
+      "sandbox",
+      "use",
+      "trace",
+      "multi-agent",
+      "team",
+      "cost",
+      "kubernetes"
+    ],
+    "chars": 23295
+  },
+  {
+    "repo": "askalf/dario",
+    "title": "<p align=\"center\">",
+    "desc": "<p align=\"center\"><strong>Your Claude Pro/Max subscription works in exactly one place: Claude Code.<br>dario makes it work everywhere — at subscription pricing, not per-token API bills.</strong></p>",
+    "keywords": [
+      "agent",
+      "rag",
+      "router",
+      "workflow",
+      "llm",
+      "saaS",
+      "skill",
+      "autonomous",
+      "computer",
+      "use",
+      "mcp",
+      "team",
+      "cost"
+    ],
+    "chars": 37716
+  },
+  {
+    "repo": "AgentsMesh/AgentsMesh",
+    "title": "<p align=\"center\">",
+    "desc": "<img src=\"docs/images/logo.svg\" alt=\"AgentsMesh\" height=\"60\" />",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "rag",
+      "router",
+      "workflow",
+      "sandbox",
+      "autonomous",
+      "use",
+      "desktop",
+      "team",
+      "cost",
+      "electron"
+    ],
+    "chars": 11687
+  },
+  {
+    "repo": "conductor-oss/conductor",
+    "title": "",
+    "desc": "<source srcset=\"https://github.com/user-attachments/assets/104b3a67-6013-4622-8075-a45da3a9e726\" media=\"(prefers-color-scheme: dark)\">",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "workflow",
+      "llm",
+      "saaS",
+      "skill",
+      "autonomous",
+      "use",
+      "desktop",
+      "mcp"
+    ],
+    "chars": 19676
+  },
+  {
+    "repo": "looptroop-ai/LoopTroop",
+    "title": "# LoopTroop",
+    "desc": "> **A smart local engine that automates big coding tasks from start to finish.**",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "rag",
+      "workflow",
+      "llm",
+      "sandbox",
+      "autonomous",
+      "computer",
+      "use",
+      "handoff",
+      "trace",
+      "cost"
+    ],
+    "chars": 16295
+  },
+  {
+    "repo": "bitrouter/bitrouter",
+    "title": "# BitRouter",
+    "desc": "Optimize your agent for cost and performance — with every run.",
+    "keywords": [
+      "agent",
+      "router",
+      "workflow",
+      "llm",
+      "saaS",
+      "skill",
+      "autonomous",
+      "use",
+      "mcp",
+      "guardrail",
+      "trace",
+      "cost"
+    ],
+    "chars": 14698
+  },
+  {
+    "repo": "holaboss-ai/holaOS",
+    "title": "<p align=\"center\">",
+    "desc": "<img src=\"docs/images/banner.png\" alt=\"Holaboss logo\" />",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "workflow",
+      "llm",
+      "computer",
+      "use",
+      "desktop",
+      "handoff",
+      "cost",
+      "electron"
+    ],
+    "chars": 14968
+  },
+  {
+    "repo": "openai/openai-agents-python",
+    "title": "# OpenAI Agents SDK [![PyPI](https://img.shields.io/pypi/v/openai-agents?label=pypi%20package)](https://pypi.org/project",
+    "desc": "The OpenAI Agents SDK is a lightweight yet powerful framework for building multi-agent workflows. It is provider-agnostic, supporting the OpenAI Responses and Chat Completions APIs, as well as 100+ ot",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "rag",
+      "workflow",
+      "llm",
+      "sandbox",
+      "computer",
+      "use",
+      "mcp",
+      "guardrail",
+      "handoff",
+      "multi-agent"
+    ],
+    "chars": 5993
+  },
+  {
+    "repo": "aden-hive/hive",
+    "title": "<p align=\"center\">",
+    "desc": "<img width=\"100%\" alt=\"Hive Banner\" src=\"https://asset.acho.io/github/img/banner.gif\" />",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "router",
+      "workflow",
+      "llm",
+      "use",
+      "mcp",
+      "multi-agent",
+      "team",
+      "cost"
+    ],
+    "chars": 16972
+  },
+  {
+    "repo": "ModulationAI/openagentio",
+    "title": "<div align=\"center\">",
+    "desc": "<img src=\"https://raw.githubusercontent.com/ModulationAI/openagentio/refs/heads/main/assets/OpenAgentIO.png\" width=\"700\" height=\"350\" alt=\"openagentio preview\">",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "router",
+      "workflow",
+      "llm",
+      "use",
+      "mcp",
+      "handoff",
+      "trace",
+      "multi-agent"
+    ],
+    "chars": 9318
+  },
+  {
+    "repo": "voltagent/voltagent",
+    "title": "<div align=\"center\">",
+    "desc": "<a href=\"https://voltagent.dev/\">",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "workflow",
+      "llm",
+      "autonomous",
+      "use",
+      "mcp",
+      "guardrail",
+      "trace",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 18662
+  },
+  {
+    "repo": "agentscope-ai/CoPaw",
+    "title": "<div align=\"center\">",
+    "desc": "<a href=\"https://trendshift.io/repositories/25882\" target=\"_blank\"><img src=\"https://trendshift.io/api/badge/trendshift/repositories/25882/daily\" alt=\"agentscope-ai%2FQwenPaw | Trendshift\" style=\"widt",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "workflow",
+      "llm",
+      "skill",
+      "use",
+      "desktop",
+      "mcp",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 32128
+  },
+  {
+    "repo": "kcosr/assistant",
+    "title": "# assistant",
+    "desc": "> This is personal software shared with the community for educational purposes.",
+    "keywords": [
+      "agent",
+      "rag",
+      "workflow",
+      "sandbox",
+      "skill",
+      "use",
+      "desktop",
+      "mcp",
+      "multi-agent",
+      "cost",
+      "electron"
+    ],
+    "chars": 19353
+  },
+  {
+    "repo": "zhayujie/CowAgent",
+    "title": "<p align=\"center\"><img src=\"https://github.com/user-attachments/assets/eca9a9ec-8534-4615-9e0f-96c5ac1d10a3\" alt=\"CowAge",
+    "desc": "<a href=\"https://github.com/zhayujie/CowAgent/releases/latest\"><img src=\"https://img.shields.io/github/v/release/zhayujie/CowAgent?cacheSeconds=3600\" alt=\"Latest release\"></a>",
+    "keywords": [
+      "agent",
+      "memory",
+      "workflow",
+      "llm",
+      "skill",
+      "computer",
+      "use",
+      "mcp",
+      "multi-agent",
+      "team",
+      "cost"
+    ],
+    "chars": 17287
+  },
+  {
+    "repo": "WilBtc/agent-as-service",
+    "title": "# Agent as a Service (AaaS) Platform",
+    "desc": "**Enterprise AI Agent Platform**",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "rag",
+      "workflow",
+      "aaas",
+      "sandbox",
+      "autonomous",
+      "use",
+      "multi-agent",
+      "team",
+      "cost"
+    ],
+    "chars": 11198
+  },
+  {
+    "repo": "WilBtc/find-evil-sleuth",
+    "title": "<div align=\"center\">",
+    "desc": "**A Level-5 agentic DFIR system for the SANS \"FIND EVIL!\" hackathon.**",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "workflow",
+      "saaS",
+      "sandbox",
+      "skill",
+      "autonomous",
+      "use",
+      "guardrail",
+      "trace"
+    ],
+    "chars": 12127
+  },
+  {
+    "repo": "Tem-Degu/streetai-aaas",
+    "title": "# AaaS: Agent as a Service",
+    "desc": "**Turn what you know into a running business. No code required.**",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "router",
+      "llm",
+      "saaS",
+      "aaas",
+      "skill",
+      "use",
+      "multi-agent",
+      "cost"
+    ],
+    "chars": 24451
+  },
+  {
+    "repo": "agentscope-ai/QwenPaw",
+    "title": "<div align=\"center\">",
+    "desc": "<a href=\"https://trendshift.io/repositories/25882\" target=\"_blank\"><img src=\"https://trendshift.io/api/badge/trendshift/repositories/25882/daily\" alt=\"agentscope-ai%2FQwenPaw | Trendshift\" style=\"widt",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "workflow",
+      "llm",
+      "skill",
+      "use",
+      "desktop",
+      "mcp",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 32128
+  },
+  {
+    "repo": "steveyegge/gastown",
+    "title": "# Gas Town",
+    "desc": "**Multi-agent orchestration system for Claude Code, GitHub Copilot, and other AI agents with persistent work tracking**",
+    "keywords": [
+      "agent",
+      "memory",
+      "orchestr",
+      "rag",
+      "workflow",
+      "autonomous",
+      "use",
+      "handoff",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 25529
+  },
+  {
+    "repo": "phuryn/swarm-protocol",
+    "title": "# 🐝 Swarm Protocol",
+    "desc": "**Coordination protocol for agent-first teams. No UI. No sprints. No Jira. Just state sync.**",
+    "keywords": [
+      "agent",
+      "rag",
+      "router",
+      "workflow",
+      "swarm",
+      "use",
+      "mcp",
+      "handoff",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 9989
+  },
+  {
+    "repo": "NVIDIA-AI-Blueprints/llm-router",
+    "title": "<h2>NVIDIA AI Blueprint: LLM Router</h2>",
+    "desc": "Ever struggled to decide which LLM to use for a specific task? In an ideal world the most accurate LLM would also be the cheapest and fastest, but in practice modern agentic AI systems have to make tr",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "router",
+      "llm",
+      "sandbox",
+      "use",
+      "team",
+      "cost",
+      "kubernetes"
+    ],
+    "chars": 15999
+  },
+  {
+    "repo": "NadirRouter/NadirClaw",
+    "title": "<p align=\"center\">",
+    "desc": "<a href=\"https://getnadir.com\">",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "router",
+      "workflow",
+      "llm",
+      "autonomous",
+      "use",
+      "team",
+      "cost"
+    ],
+    "chars": 68068
+  },
+  {
+    "repo": "lobehub/lobehub",
+    "title": "<div align=\"center\"><a name=\"readme-top\"></a>",
+    "desc": "LobeHub organizes your agents into 7×24 operation.",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "workflow",
+      "llm",
+      "skill",
+      "use",
+      "mcp",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 34803
+  },
+  {
+    "repo": "Mintplex-Labs/anything-llm",
+    "title": "<a name=\"readme-top\"></a>",
+    "desc": "<a href=\"https://anythingllm.com\"><img src=\"https://github.com/Mintplex-Labs/anything-llm/blob/master/images/wordmark.png?raw=true\" alt=\"AnythingLLM logo\"></a>",
+    "keywords": [
+      "agent",
+      "rag",
+      "router",
+      "workflow",
+      "llm",
+      "skill",
+      "use",
+      "desktop",
+      "mcp",
+      "cost"
+    ],
+    "chars": 25586
+  },
+  {
+    "repo": "strands-agents/harness-sdk",
+    "title": "<div align=\"center\">",
+    "desc": "<a href=\"https://strandsagents.com\">",
+    "keywords": [
+      "agent",
+      "workflow",
+      "autonomous",
+      "use",
+      "mcp",
+      "guardrail",
+      "trace",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 7055
+  },
+  {
+    "repo": "CompanyHelm/companyhelm",
+    "title": "# CompanyHelm - Distributed Coding Agent Orchestrator",
+    "desc": "<a href=\"https://discord.gg/YueY3dQM9Q\"><img src=\"https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge\" alt=\"Discord\"></a> [![",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "router",
+      "workflow",
+      "skill",
+      "use",
+      "desktop",
+      "mcp"
+    ],
+    "chars": 6142
+  },
+  {
+    "repo": "sentientwave/automata",
+    "title": "# SentientWave Automata",
+    "desc": "Automata is a Matrix-native workspace and admin dashboard for teams that want people and AI assistants to handle real work together. Conversations happen in chat. Setup, control, and visibility happen",
+    "keywords": [
+      "agent",
+      "workflow",
+      "skill",
+      "use",
+      "desktop",
+      "trace",
+      "team",
+      "kubernetes"
+    ],
+    "chars": 7886
+  },
+  {
+    "repo": "AgentWorkforce/relay",
+    "title": "<img src=\"https://agentrelay.com/readme-banners/relay.png\" alt=\"Agent Relay\">",
+    "desc": "<p align=\"center\"><img alt=\"TypeScript\" src=\"https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white\"> <a href=\"https://github.com/AgentWorkforce/relay/actions",
+    "keywords": [
+      "agent",
+      "rag",
+      "workflow",
+      "skill",
+      "use",
+      "mcp",
+      "multi-agent",
+      "team"
+    ],
+    "chars": 14258
+  },
+  {
+    "repo": "Wolido/OpenAaaS",
+    "title": "<p align=\"right\">中文 | <a href=\"./README.en.md\">English</a></p>",
+    "desc": "<img src=\"./assets/logo.png\" width=\"360\" alt=\"OpenAaaS Logo\">",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "workflow",
+      "aaas",
+      "skill",
+      "use",
+      "desktop",
+      "mcp"
+    ],
+    "chars": 9746
+  },
+  {
+    "repo": "zxyao145/agw",
+    "title": "# Agw",
+    "desc": "Agw is an AssS (Agent as a Service) platform and agent gateway that allows users to create custom agents and integrate existing external agents (such as Claude Code and Codex).",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "router",
+      "workflow",
+      "skill",
+      "use",
+      "mcp",
+      "multi-agent"
+    ],
+    "chars": 6218
+  },
+  {
+    "repo": "mail2chromium/aaas-voice-agent-benchmark",
+    "title": "# AaaS Voice Agent Benchmark 2026",
+    "desc": "> **SaaS charges for ACCESS. AaaS charges for OUTCOMES.**",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "workflow",
+      "llm",
+      "saaS",
+      "aaas",
+      "use",
+      "cost"
+    ],
+    "chars": 3742
+  },
+  {
+    "repo": "WilBtc/InsaAutomationCorp",
+    "title": "# INSA Automation Corp - Autonomous Industrial Platform",
+    "desc": "A comprehensive autonomous platform for industrial automation, CRM, and DevSecOps with AI-powered agents.",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "rag",
+      "workflow",
+      "autonomous",
+      "computer",
+      "use",
+      "mcp"
+    ],
+    "chars": 6509
+  },
+  {
+    "repo": "ComposioHQ/agent-orchestrator",
+    "title": "<div align=\"center\">",
+    "desc": "<img src=\"ao-logo.svg\" alt=\"Agent Orchestrator\" width=\"200\" height=\"200\" />",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "rag",
+      "router",
+      "use",
+      "desktop",
+      "electron"
+    ],
+    "chars": 15639
+  },
+  {
+    "repo": "saltbo/agent-kanban",
+    "title": "# Agent Kanban",
+    "desc": "Mission control for your AI workforce.",
+    "keywords": [
+      "agent",
+      "rag",
+      "workflow",
+      "skill",
+      "use",
+      "handoff",
+      "team"
+    ],
+    "chars": 9921
+  },
+  {
+    "repo": "mnfst/manifest",
+    "title": "<p align=\"center\">",
+    "desc": "<source media=\"(prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/mnfst/manifest/HEAD/.github/assets/logo-white.svg\" />",
+    "keywords": [
+      "agent",
+      "rag",
+      "router",
+      "workflow",
+      "use",
+      "team",
+      "cost"
+    ],
+    "chars": 7856
+  },
+  {
+    "repo": "WilBtc/insa-autonomous-agents-showcase",
+    "title": "<div align=\"center\">",
+    "desc": "**Your servers detect, diagnose, and fix their own problems — at 3 AM, without you.**",
+    "keywords": [
+      "agent",
+      "rag",
+      "sandbox",
+      "autonomous",
+      "multi-agent",
+      "team",
+      "cost"
+    ],
+    "chars": 2219
+  },
+  {
+    "repo": "simular-ai/agent-s",
+    "title": "<h1 align=\"center\">",
+    "desc": "<img src=\"images/agent_s.png\" alt=\"Logo\" style=\"vertical-align:middle\" width=\"60\"> Agent S:",
+    "keywords": [
+      "agent",
+      "router",
+      "llm",
+      "sandbox",
+      "autonomous",
+      "computer",
+      "use"
+    ],
+    "chars": 16138
+  },
+  {
+    "repo": "mindfold-ai/Trellis",
+    "title": "<p align=\"center\">",
+    "desc": "<source srcset=\"assets/trellis.png\" media=\"(prefers-color-scheme: dark)\">",
+    "keywords": [
+      "agent",
+      "memory",
+      "workflow",
+      "skill",
+      "use",
+      "team"
+    ],
+    "chars": 8372
+  },
+  {
+    "repo": "JoshuaC215/agent-service-toolkit",
+    "title": "# 🧰 AI Agent Service Toolkit",
+    "desc": "A full toolkit for running an AI agent service built with LangGraph, FastAPI and Streamlit.",
+    "keywords": [
+      "agent",
+      "memory",
+      "rag",
+      "workflow",
+      "llm",
+      "use"
+    ],
+    "chars": 11728
+  },
+  {
+    "repo": "WilBtc/insa-ai-security-showcase",
+    "title": "<div align=\"center\">",
+    "desc": "**Enterprise-grade autonomous security infrastructure, without the enterprise headcount.**",
+    "keywords": [
+      "agent",
+      "llm",
+      "autonomous",
+      "team",
+      "cost"
+    ],
+    "chars": 2207
+  },
+  {
+    "repo": "WilBtc/anh-reporter-showcase-es",
+    "title": "# ANH Smart Reporter - Sistema Inteligente de Cumplimiento Regulatorio 🚀",
+    "desc": "**ANH Smart Reporter** es la solución definitiva de automatización industrial para el cumplimiento regulatorio de la industria petrolera colombiana. Diseñado específicamente para la **Resolución ANH 0",
+    "keywords": [
+      "rag",
+      "llm",
+      "saaS",
+      "cost",
+      "kubernetes"
+    ],
+    "chars": 12244
+  },
+  {
+    "repo": "Netflix/conductor",
+    "title": "![Conductor](docs/docs/img/logo.png)",
+    "desc": "> Effective **December 13, 2023**, Netflix will discontinue maintenance of Conductor OSS on GitHub. This strategic decision, while difficult, is essential for realigning our resources to better serve ",
+    "keywords": [
+      "orchestr",
+      "rag",
+      "workflow",
+      "use"
+    ],
+    "chars": 7688
+  },
+  {
+    "repo": "WilBtc/insa-tradingagent-showcase",
+    "title": "<div align=\"center\">",
+    "desc": "**Remove emotion. Execute a strategy. 24/7.**",
+    "keywords": [
+      "agent",
+      "autonomous",
+      "use",
+      "guardrail"
+    ],
+    "chars": 2081
+  },
+  {
+    "repo": "Muhammad-Hashim/aaas-boilerplate",
+    "title": "# aaas-boilerplate",
+    "desc": "aaas-boilerplate – Agent as a Service Boilerplate Open-source boilerplate to build and deploy AI agents as a service using React, Django, and AWS. Includes multi-tenant auth, agent orchestration, task",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "saaS",
+      "aaas"
+    ],
+    "chars": 330
+  },
+  {
+    "repo": "WilBtc/insa-crm-showcase",
+    "title": "<div align=\"center\">",
+    "desc": "**Stop losing leads in spreadsheets and inbox chaos.**",
+    "keywords": [
+      "agent",
+      "orchestr",
+      "autonomous",
+      "team"
+    ],
+    "chars": 2031
+  },
+  {
+    "repo": "Tem-Degu/streetai-memory",
+    "title": "# Street AI",
+    "desc": "> Continuously learning memory layer for LLM applications.",
+    "keywords": [
+      "memory",
+      "rag",
+      "llm",
+      "use"
+    ],
+    "chars": 9453
+  },
+  {
+    "repo": "mnfst/awesome-free-llm-apis",
+    "title": "<h1 align=\"center\">",
+    "desc": "<a href=\"https://github.com/mnfst/awesome-free-llm-apis\">",
+    "keywords": [
+      "router",
+      "llm",
+      "use"
+    ],
+    "chars": 23622
+  },
+  {
+    "repo": "christiansiewert/aaas-api",
+    "title": "<p align=\"center\">",
+    "desc": "<img src=\"https://raw.githubusercontent.com/christiansiewert/aaas-api/develop/docs/logo.png\" alt=\"API as a Service\" />",
+    "keywords": [
+      "rag",
+      "aaas",
+      "use"
+    ],
+    "chars": 2848
+  }
+]

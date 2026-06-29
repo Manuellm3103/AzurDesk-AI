@@ -47,8 +47,14 @@ class ConductorLiteService {
   }
 
   // Start a new run using durable execution engine as the substrate.
-  startRun(tenant_id, { workflow_id, context = {} }, durableExec) {
+  startRun(tenant_id, workflow_id, context = {}, durableExec) {
     this.ensureTables();
+    if (typeof workflow_id === 'object') {
+      const opts = workflow_id;
+      workflow_id = opts.workflow_id;
+      context = opts.context || context;
+      durableExec = opts.durableExec || durableExec;
+    }
     const wf = this.getWorkflow(tenant_id, workflow_id);
     if (!wf) throw new Error('workflow not found');
     const runId = randomUUID();
@@ -60,9 +66,15 @@ class ConductorLiteService {
   }
 
   // Execute next ready steps. Deterministic because runActivity is idempotent per (execution_id, seq).
-  async advanceRun(tenant_id, runId, durableExec, handlers = {}) {
+  async resumeRun(tenant_id, run_id, { durableExec, stepHandlers = {} } = {}) {
     this.ensureTables();
-    const run = db.prepare('SELECT * FROM conductor_runs WHERE id=? AND tenant_id=?').get(runId, tenant_id);
+    if (typeof run_id === 'object') {
+      const opts = run_id;
+      run_id = opts.run_id;
+      durableExec = opts.durableExec;
+      stepHandlers = opts.stepHandlers || stepHandlers;
+    }
+    const run = this.getRun(tenant_id, run_id);
     if (!run) throw new Error('run not found');
     const wf = this.getWorkflow(tenant_id, run.workflow_id);
     if (!wf) throw new Error('workflow not found');
@@ -85,15 +97,15 @@ class ConductorLiteService {
 
         const input = { ...step.input, ...Object.fromEntries((step.deps || []).map(d => [d, results[d]])) };
         try {
-          const fn = handlers[step.id] || this._defaultHandler(step);
+          const fn = stepHandlers[step.id] || this._defaultHandler(step);
           const { result } = await durableExec.runActivity(tenant_id, execution.id, { seq: stepMap.get(step.id).seq, type: step.id, fn, payload: input });
           results[step.id] = result;
           completedEvents.add(key);
           progress = true;
         } catch (err) {
           db.prepare('UPDATE conductor_runs SET status=?, result=?, updated_at=? WHERE id=?')
-            .run('failed', JSON.stringify({ ...results, [step.id]: { error: err.message } }), now(), runId);
-          return { runId, status: 'failed', error: err.message, results };
+            .run('failed', JSON.stringify({ ...results, [step.id]: { error: err.message } }), now(), run_id);
+          return { runId: run_id, status: 'failed', error: err.message, results };
         }
       }
     }
@@ -101,9 +113,9 @@ class ConductorLiteService {
     const allDone = dag.steps.every(s => completedEvents.has(`${stepMap.get(s.id).seq}:${s.id}`) || results[s.id] !== undefined);
     const status = allDone ? 'completed' : 'running';
     db.prepare('UPDATE conductor_runs SET status=?, result=?, updated_at=? WHERE id=?')
-      .run(status, JSON.stringify(results), now(), runId);
+      .run(status, JSON.stringify(results), now(), run_id);
     if (status === 'completed') durableExec.complete(tenant_id, execution.id, results);
-    return { runId, status, results };
+    return { runId: run_id, status, results };
   }
 
   getRun(tenant_id, runId) {

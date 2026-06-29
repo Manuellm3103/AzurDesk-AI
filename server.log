@@ -1,0 +1,8 @@
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[AAAS] MASTER_KEY no configurada; usando fallback inseguro. En producción setear AAAS_MASTER_KEY de 32+ caracteres.
+[SECURITY] JWT_SECRET no configurado. Usando fallback inseguro para desarrollo. En producción setear JWT_SECRET de 32+ caracteres.
+AzurDesk AI v2.6.7 running on http://localhost:5200
