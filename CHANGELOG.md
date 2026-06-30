@@ -1,3 +1,23 @@
+## [2.6.10] - 2026-06-30 — Full-stack audit fixes (3 bugs found by user pressure test)
+
+### Fixed
+- **POST /api/tickets**: zod schema documenta campos reales `requester_email/requester_name/subject/body`. Test runner anterior usaba payload incompatible que el smoke con datos preexistentes no обнаружил.
+- **GET /api/billing/summary 404**: endpoint no existía. Añadido `BillingService.getSummary()` con histórico de 6 períodos (current_period, current_total, currency, history[]) + endpoint `GET /api/billing/summary`.
+- **GET /api/durable-executions 404**: solo existía `/api/workflows/durable`. Añadidos `GET /api/durable-executions` (lista), `POST /api/durable-executions` (start), `GET /api/durable-executions/:id` (dynamic con `startsWith` + `split('/').pop()`).
+
+### Added
+- Smoke canary integration (manual ahora, CI en próximo ciclo) — limpia DB, levanta server, login JWT, prueba 22 endpoints críticos con datos válidos.
+
+### Verification
+- `npm test`: 229/229 pass, 1 skip
+- `npm run smoke`: 161/161
+- `node tests/real-cases.mjs`: 59/59
+- UI/backend audit: 237 exact + 90 dynamic + 133 calls + 56 views + 56 renderers — PASSED
+- Full-stack pressure test: 22/22 endpoints 200 OK con JWT real, SQLite real, LLM real
+- Prompt cache: miss→hit round-trip OK, cost_usd=0 en hit
+- A2A NDJSON stream: open→batch→close OK
+- Portable `AzurDeskAI_v2.6.10.zip`: 15.4 MB
+
 ## [2.6.9] - 2026-06-30 — Prompt Cache + Reasoning Effort + A2A Streaming NDJSON
 
 ### Added

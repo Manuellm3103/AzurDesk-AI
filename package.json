@@ -1,6 +1,6 @@
 {
   "name": "azurdesk-ai",
-  "version": "2.6.9",
+  "version": "2.6.10",
   "description": "Agents-as-a-Service + SaaS unificado: orquestador, memoria continua, GraphRAG/RAG híbrido, swarm, router multimodal, ML/DL, Computer Use, UI enterprise",
   "type": "module",
   "main": "server.mjs",

@@ -1956,5 +1956,5 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-server.listen(PORT, () => console.log(`AzurDesk AI v2.6.9 running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`AzurDesk AI v2.6.10 running on http://localhost:${PORT}`));
 export { db, chat, telemetry };
