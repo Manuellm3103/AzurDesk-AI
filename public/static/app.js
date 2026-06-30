@@ -48,7 +48,8 @@ const VIEW_LABELS = {
   meetings: 'Meetings', memory: 'Memory Hub', rag: 'Hybrid RAG', ml: 'ML Tickets', agents: 'Agents Runtime',
   gateway: 'AaaS Gateway', otel: 'OTel + Self-Heal', queue: 'Event Queue', tracing: 'Tracing', handoffs: 'Handoffs',
   workflows: 'Durable Workflows', executions: 'Durable Executions', 'a2a-standard': 'A2A Tasks', 'agent-dag': 'Agent DAG',
-  'agentic-rag': 'Agentic RAG', 'browser-agent': 'Browser Agent', 'mcp-registry': 'MCP Registry', 'mcp-tools': 'MCP Tools',
+  'agentic-rag': 'Agentic RAG',
+  'embeddings': 'Embeddings & HNSW', 'browser-agent': 'Browser Agent', 'mcp-registry': 'MCP Registry', 'mcp-tools': 'MCP Tools',
   'mcp-gateway': 'MCP Gateway', 'local-llm': 'Local LLM', 'policy-engine': 'Policy Engine', sandbox: 'Agent Sandbox',
   'causal-alerts': 'Causal Alerts', remediation: 'Remediation DSL', 'failure-prediction': 'Failure Prediction', rebac: 'ReBAC AuthZ',
   'agent-cost': 'Agent Cost', billing: 'Billing', onboarding: 'Onboarding', legal: 'Legal', builder: 'Web Builder',
@@ -136,6 +137,7 @@ const RENDERERS = {
   'a2a-standard': () => renderA2AStandard,
   'agent-dag': () => renderAgentDAG,
   'agentic-rag': () => renderAgenticRAG,
+  'embeddings': () => renderEmbeddings,
   'browser-agent': () => renderBrowserAgent,
   'mcp-registry': () => renderMCPRegistry,
   'mcp-tools': () => renderMCPTools,
@@ -2937,6 +2939,88 @@ async function mcpResourcesList() {
 async function mcpPromptsList() {
   const r = await mcpRpc('prompts/list', {}, 5);
   document.getElementById('mcp-prompts-result').textContent = JSON.stringify(r, null, 2);
+}
+
+// ===== Embeddings & HNSW (v2.6.12) =====
+async function renderEmbeddings(el) {
+  if (!el) return;
+  el.innerHTML = `
+    <h2>🔢 Embeddings &amp; HNSW</h2>
+    <p class="muted">Vector store local con 256-dim BMF embeddings y búsqueda HNSW (Hierarchical Navigable Small World) aproximada + híbrida semántica/keyword. Almacenamiento en SQLite. Reemplazable por modelo externo (text-embedding-3-small, bge-small, nomic-embed-text) sin cambiar la API.</p>
+    <div class="grid two">
+      <section>
+        <h3>1. Ingestar texto</h3>
+        <label>Source <input id="emb-source" value="kb"></label>
+        <label>Source ID <input id="emb-source-id" value="doc-1"></label>
+        <label>Text <textarea id="emb-text" rows="3">SLA del ticket es 4 horas</textarea></label>
+        <button class="btn primary" onclick="embIngest()">＋ Ingestar</button>
+        <pre id="emb-ingest-result" class="result">—</pre>
+      </section>
+      <section>
+        <h3>2. Search (exact kNN)</h3>
+        <label>Query <input id="emb-query" value="¿cuál es el SLA?"></label>
+        <label>k <input id="emb-k" type="number" value="5"></label>
+        <button class="btn primary" onclick="embSearch()">🔍 search</button>
+        <pre id="emb-search-result" class="result">—</pre>
+      </section>
+      <section>
+        <h3>3. HNSW (approximate)</h3>
+        <label>Query <input id="emb-hnsw-query" value="ticket database error"></label>
+        <label>k <input id="emb-hnsw-k" type="number" value="5"></label>
+        <label>ef <input id="emb-hnsw-ef" type="number" value="50"></label>
+        <button class="btn primary" onclick="embHnsw()">🧭 hnsw</button>
+        <pre id="emb-hnsw-result" class="result">—</pre>
+      </section>
+      <section>
+        <h3>4. Hybrid (semantic + keyword)</h3>
+        <label>Query <input id="emb-hybrid-query" value="password reset"></label>
+        <label>α (semantic weight) <input id="emb-hybrid-alpha" type="number" step="0.05" value="0.7"></label>
+        <button class="btn primary" onclick="embHybrid()">🔀 hybrid</button>
+        <pre id="emb-hybrid-result" class="result">—</pre>
+      </section>
+      <section>
+        <h3>5. Stats</h3>
+        <button class="btn" onclick="embStats()">📊 stats</button>
+        <pre id="emb-stats-result" class="result">—</pre>
+      </section>
+    </div>
+  `;
+  embStats();
+}
+
+async function embIngest() {
+  const source = document.getElementById('emb-source').value;
+  const sourceId = document.getElementById('emb-source-id').value;
+  const text = document.getElementById('emb-text').value;
+  const r = await api('POST', '/api/embeddings', { source, source_id: sourceId, text });
+  document.getElementById('emb-ingest-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function embSearch() {
+  const query = document.getElementById('emb-query').value;
+  const k = Number(document.getElementById('emb-k').value) || 5;
+  const r = await api('POST', '/api/embeddings/search', { query, k });
+  document.getElementById('emb-search-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function embHnsw() {
+  const query = document.getElementById('emb-hnsw-query').value;
+  const k = Number(document.getElementById('emb-hnsw-k').value) || 5;
+  const ef = Number(document.getElementById('emb-hnsw-ef').value) || 50;
+  const r = await api('POST', '/api/embeddings/hnsw', { query, k, ef });
+  document.getElementById('emb-hnsw-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function embHybrid() {
+  const query = document.getElementById('emb-hybrid-query').value;
+  const alpha = Number(document.getElementById('emb-hybrid-alpha').value) || 0.7;
+  const r = await api('POST', '/api/embeddings/hybrid', { query, alpha });
+  document.getElementById('emb-hybrid-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function embStats() {
+  const r = await api('GET', '/api/embeddings/stats');
+  document.getElementById('emb-stats-result').textContent = JSON.stringify(r, null, 2);
 }
 
 

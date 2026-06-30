@@ -95,7 +95,11 @@ const CASES = [
   { method: 'POST', path: '/api/llm/cache/invalidate', name: 'Prompt cache: invalidate', body: { modelProvider: 'noop', modelName: 'noop' } },
   { method: 'POST', path: '/api/llm/cache/cleanup', name: 'Prompt cache: cleanup', body: {} },
   // v2.6.11 — MCP 1.0 streamable-HTTP
-  { method: 'GET', path: '/mcp/info', name: 'MCP 1.0: server info (no auth required, but token attached)' }
+  { method: 'GET', path: '/mcp/info', name: 'MCP 1.0: server info (no auth required, but token attached)' },
+  // v2.6.12 — Embeddings
+  { method: 'GET', path: '/api/embeddings/stats', name: 'Embeddings: stats' },
+  { method: 'POST', path: '/api/embeddings', name: 'Embeddings: upsert', body: { source: 'kb', source_id: 'real-1', text: 'real case test' } },
+  { method: 'POST', path: '/api/embeddings/search', name: 'Embeddings: search', body: { query: 'real case test', k: 3 } }
 ];
 
 async function main() {

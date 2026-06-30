@@ -53,6 +53,7 @@ import assetService from './src/services/assetService.js';
 import rbacService from './src/services/rbacService.js';
 import * as mcpExpandedService from './src/services/mcpExpandedService.js';
 import * as mcpStreamableHttp from './src/services/mcpStreamableHttpService.js';
+import embeddingService from './src/services/embeddingService.js';
 import * as obsidianService from './src/services/obsidianService.js';
 import * as aiNotesService from './src/services/aiNotesService.js';
 import * as meetingPipelineService from './src/services/meetingPipelineService.js';
@@ -2008,6 +2009,42 @@ const server = createServer(async (req, res) => {
       });
     }
 
+    // ===== Embeddings + HNSW (v2.6.12) =====
+    if (pathname === '/api/embeddings' && req.method === 'POST') {
+      const { source, source_id, text, model } = body || {};
+      if (!source || !text) return json(res, { success: false, error: 'source y text requeridos' }, 400);
+      const r = embeddingService.upsert(user.tenant_id, { source, sourceId: source_id, text, model });
+      return json(res, { success: true, embedding: r });
+    }
+    if (pathname === '/api/embeddings/search' && req.method === 'POST') {
+      const { query, k = 5, source = null, threshold = 0 } = body || {};
+      if (!query) return json(res, { success: false, error: 'query requerida' }, 400);
+      const results = embeddingService.search(user.tenant_id, { query, k, source, threshold });
+      return json(res, { success: true, results, count: results.length });
+    }
+    if (pathname === '/api/embeddings/hnsw' && req.method === 'POST') {
+      const { query, k = 5, ef = 50, source = null, threshold = 0 } = body || {};
+      if (!query) return json(res, { success: false, error: 'query requerida' }, 400);
+      const results = embeddingService.hnswSearch(user.tenant_id, { query, k, ef, source, threshold });
+      return json(res, { success: true, results, count: results.length, algorithm: 'hnsw' });
+    }
+    if (pathname === '/api/embeddings/hybrid' && req.method === 'POST') {
+      const { query, k = 5, source = null, alpha = 0.7 } = body || {};
+      if (!query) return json(res, { success: false, error: 'query requerida' }, 400);
+      const results = embeddingService.hybridSearch(user.tenant_id, { query, k, source, alpha });
+      return json(res, { success: true, results, count: results.length });
+    }
+    if (pathname === '/api/embeddings/stats' && req.method === 'GET') {
+      return json(res, { success: true, stats: embeddingService.stats(user.tenant_id) });
+    }
+    if (pathname.startsWith('/api/embeddings/') && req.method === 'DELETE') {
+      const params = new URL(req.url, 'http://x').searchParams;
+      const source = params.get('source');
+      const sourceId = params.get('source_id');
+      const removed = embeddingService.delete(user.tenant_id, { source, sourceId });
+      return json(res, { success: true, removed });
+    }
+
     return json(res, { success: false, error: 'Not found' }, 404);
   } catch (e) {
     if (e.message && e.message.includes('Payload exceeds')) {
@@ -2037,5 +2074,5 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-server.listen(PORT, () => console.log(`AzurDesk AI v2.6.11 running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`AzurDesk AI v2.6.12 running on http://localhost:${PORT}`));
 export { db, chat, telemetry };

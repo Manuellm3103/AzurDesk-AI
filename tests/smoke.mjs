@@ -285,6 +285,18 @@ async function main() {
   const streamLines = streamRes.body.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
   add('GET /api/a2a/stream (NDJSON)', streamRes.status === 200 && streamLines.length >= 3 && streamLines[0].event === 'open');
 
+  // v2.6.12 — Embeddings + HNSW
+  await request('POST', '/api/embeddings', { source: 'kb', source_id: 'sm-1', text: 'SLA 4 horas' }, token);
+  await request('POST', '/api/embeddings', { source: 'kb', source_id: 'sm-2', text: 'password reset instrucciones' }, token);
+  const embSearch = await request('POST', '/api/embeddings/search', { query: '¿cuál es el SLA?', k: 3 }, token);
+  add('POST /api/embeddings + search', embSearch.status === 200 && embSearch.body.count > 0);
+  const embHnsw = await request('POST', '/api/embeddings/hnsw', { query: 'database connection timeout', k: 3, ef: 30 }, token);
+  add('POST /api/embeddings/hnsw', embHnsw.status === 200 && embHnsw.body.algorithm === 'hnsw');
+  const embHybrid = await request('POST', '/api/embeddings/hybrid', { query: 'SLA', k: 3, alpha: 0.7 }, token);
+  add('POST /api/embeddings/hybrid', embHybrid.status === 200 && embHybrid.body.count > 0);
+  const embStats = await request('GET', '/api/embeddings/stats', null, token);
+  add('GET /api/embeddings/stats', embStats.status === 200 && embStats.body.stats && embStats.body.stats.dim === 256);
+
   // v2.6.11 — MCP 1.0 streamable-HTTP
   const mcpInfo = await request('GET', '/mcp/info', null, token);
   add('GET /mcp/info', mcpInfo.status === 200 && mcpInfo.body.protocolVersion === '2025-11-25');

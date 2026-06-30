@@ -1,3 +1,24 @@
+## [2.6.12] - 2026-06-30 — Embeddings + HNSW (vector search local)
+
+### Added
+- **embeddingService.js**: vector store local con 256-dim BMF embeddings, búsqueda HNSW (Hierarchical Navigable Small World) aproximada, búsqueda exacta kNN, búsqueda híbrida semantic+keyword. Almacenamiento en SQLite. Pluggable: cambiar pseudoEmbed() por text-embedding-3-small o bge-small sin tocar API.
+- **6 endpoints REST**:
+  - `POST /api/embeddings` — upsert de (tenant, source, source_id, text)
+  - `POST /api/embeddings/search` — kNN exacto
+  - `POST /api/embeddings/hnsw` — HNSW aproximado con ef (candidatos)
+  - `POST /api/embeddings/hybrid` — semantic + keyword con α weight
+  - `GET /api/embeddings/stats` — total + breakdown por source
+  - `DELETE /api/embeddings/?source=X&source_id=Y` — purga selectiva
+- **UI tab "Embeddings & HNSW"** con playground: ingestar, search exacto, HNSW, hybrid, stats.
+- **10 nuevos tests** (tests/embeddings.mjs).
+
+### Verification
+- `npm test`: 259/260 pass, 1 skip
+- `npm run smoke`: 168/168
+- `node tests/real-cases.mjs`: 63/63
+- UI/backend audit: 242 exact + 91 dynamic + 138 calls + 58 views + 58 renderers — PASSED
+- Portable `AzurDeskAI_v2.6.12.zip`: 15.5 MB
+
 ## [2.6.11] - 2026-06-30 — MCP 1.0 Streamable-HTTP Transport nativo
 
 ### Added
