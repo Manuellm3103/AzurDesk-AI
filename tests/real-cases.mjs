@@ -93,7 +93,9 @@ const CASES = [
   // v2.6.9 — Prompt cache + Reasoning effort
   { method: 'GET', path: '/api/llm/cache/stats?days=7', name: 'Prompt cache: stats' },
   { method: 'POST', path: '/api/llm/cache/invalidate', name: 'Prompt cache: invalidate', body: { modelProvider: 'noop', modelName: 'noop' } },
-  { method: 'POST', path: '/api/llm/cache/cleanup', name: 'Prompt cache: cleanup', body: {} }
+  { method: 'POST', path: '/api/llm/cache/cleanup', name: 'Prompt cache: cleanup', body: {} },
+  // v2.6.11 — MCP 1.0 streamable-HTTP
+  { method: 'GET', path: '/mcp/info', name: 'MCP 1.0: server info (no auth required, but token attached)' }
 ];
 
 async function main() {

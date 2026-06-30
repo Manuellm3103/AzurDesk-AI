@@ -285,6 +285,32 @@ async function main() {
   const streamLines = streamRes.body.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
   add('GET /api/a2a/stream (NDJSON)', streamRes.status === 200 && streamLines.length >= 3 && streamLines[0].event === 'open');
 
+  // v2.6.11 — MCP 1.0 streamable-HTTP
+  const mcpInfo = await request('GET', '/mcp/info', null, token);
+  add('GET /mcp/info', mcpInfo.status === 200 && mcpInfo.body.protocolVersion === '2025-11-25');
+  const mcpInitRes = await new Promise((resolve) => {
+    const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'smoke', version: '1.0' } } });
+    const req = http.request({ hostname: 'localhost', port: PORT, path: '/mcp', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }, (r) => {
+      let data = ''; r.setEncoding('utf8'); r.on('data', c => { data += c; }); r.on('end', () => resolve({ status: r.statusCode, body: data, session: r.headers['mcp-session-id'] }));
+    });
+    req.on('error', e => resolve({ status: 0, body: String(e) }));
+    req.write(body); req.end();
+  });
+  let mcpInitOk = false;
+  try { const obj = JSON.parse(mcpInitRes.body); mcpInitOk = obj.result && obj.result.protocolVersion === '2025-11-25' && !!obj.result.sessionId; } catch {}
+  add('POST /mcp initialize (JSON-RPC 2.0)', mcpInitRes.status === 200 && mcpInitOk);
+  const toolsListRes = await new Promise((resolve) => {
+    const body = JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+    const req = http.request({ hostname: 'localhost', port: PORT, path: '/mcp', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }, (r) => {
+      let data = ''; r.setEncoding('utf8'); r.on('data', c => { data += c; }); r.on('end', () => resolve({ status: r.statusCode, body: data }));
+    });
+    req.on('error', e => resolve({ status: 0, body: String(e) }));
+    req.write(body); req.end();
+  });
+  let toolsOk = false;
+  try { const obj = JSON.parse(toolsListRes.body); toolsOk = obj.result && Array.isArray(obj.result.tools) && obj.result.tools.length > 5; } catch {}
+  add('POST /mcp tools/list (JSON-RPC 2.0)', toolsListRes.status === 200 && toolsOk);
+
   console.log('SMOKE AzurDesk AI v2.6.7 AaaS+SaaS + Innovaciones 2026');
   for (const c of checks) console.log(`${c.ok ? '✅' : '❌'} ${c.name} ${!c.ok ? '(falló)' : ''}`);
   const ok = checks.filter((c) => c.ok).length;

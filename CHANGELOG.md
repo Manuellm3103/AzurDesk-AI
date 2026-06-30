@@ -1,3 +1,29 @@
+## [2.6.11] - 2026-06-30 — MCP 1.0 Streamable-HTTP Transport nativo
+
+### Added
+- **mcpStreamableHttpService** (ADR-040): implementación completa del transporte MCP 1.0 (spec 2025-11-25). JSON-RPC 2.0 estricto, sesiones in-memory con TTL 30 min, header `Mcp-Session-Id`, capabilities (tools, resources, prompts, logging), prompts/templates y resources URI-addressable.
+- **Endpoints MCP**:
+  - `POST /mcp` — JSON-RPC 2.0 sobre HTTP. JSON mode (`Accept: application/json`) o SSE mode (`Accept: text/event-stream`). Batch support.
+  - `GET /mcp` — abre SSE stream server→client con keep-alive cada 15s.
+  - `DELETE /mcp` — termina sesión.
+  - `GET /mcp/info` — discovery del server (protocol, capabilities, methods).
+- **Métodos MCP soportados**: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`.
+- **UI Tab "MCP Server (1.0)"** con playground: server info, initialize handshake, tools/list, tools/call (con form para name + args), resources/list, prompts/list. Incluye el bloque de config para Claude Desktop / Cursor / Cline / Continue.dev / Zed.
+- **Tests**: `tests/mcp-streamable-http.mjs` (20 tests).
+
+### Changed
+- `server.mjs`: 4 nuevos endpoints MCP.
+- `public/index.html`: nav link "MCP Server (1.0)".
+- `public/static/app.js`: renderer `renderMCPServer` + 6 helpers.
+- `package.json`: version 2.6.11; test runner incluye `tests/mcp-streamable-http.mjs`.
+
+### Verification
+- `npm test`: 249/250 pass, 1 skip
+- `npm run smoke`: 164/164
+- `node tests/real-cases.mjs`: 60/60
+- UI/backend audit: PASSED
+- Full-stack pressure: 22/22 + MCP initialize+tools/list round-trip OK
+
 ## [2.6.10] - 2026-06-30 — Full-stack audit fixes (3 bugs found by user pressure test)
 
 ### Fixed

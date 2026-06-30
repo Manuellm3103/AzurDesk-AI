@@ -140,6 +140,7 @@ const RENDERERS = {
   'mcp-registry': () => renderMCPRegistry,
   'mcp-tools': () => renderMCPTools,
   'mcp-gateway': () => renderMCPGateway,
+  'mcp-server': () => renderMCPServer,
   'local-llm': () => renderLocalLLM,
   'policy-engine': () => renderPolicyEngine,
   sandbox: () => renderSandbox,
@@ -2824,6 +2825,118 @@ async function cleanupLLMCache() {
   const r = await api('POST', '/api/llm/cache/cleanup', {});
   alert(`Expiradas eliminadas: ${r.removed}`);
   loadLLMCacheStats();
+}
+
+// ===== MCP 1.0 Server (Streamable-HTTP) =====
+async function renderMCPServer(el) {
+  if (!el) return;
+  let sessionId = null;
+  el.innerHTML = `
+    <h2>🔌 MCP Server 1.0 — Streamable-HTTP</h2>
+    <p class="muted">AzurDesk AI expuesto como servidor MCP 1.0 (spec 2025-11-25). Compatible con Claude Desktop, Cursor, Cline, Continue.dev, Zed. Endpoint único <code>POST /mcp</code> con JSON-RPC 2.0, transporte streamable-HTTP y sesiones con <code>Mcp-Session-Id</code>.</p>
+    <div class="grid two">
+      <section>
+        <h3>1. Server Info</h3>
+        <div id="mcp-server-info">Cargando...</div>
+        <button class="btn" onclick="loadMCPInfo()">↻ Refrescar info</button>
+      </section>
+      <section>
+        <h3>2. Initialize (handshake)</h3>
+        <p class="muted">Inicia sesión MCP y devuelve <code>sessionId</code>.</p>
+        <button class="btn primary" onclick="mcpInitialize()">▶ initialize</button>
+        <div id="mcp-init-result" class="result">—</div>
+      </section>
+      <section>
+        <h3>3. tools/list</h3>
+        <p class="muted">Lista de tools disponibles (subset de capabilities del server).</p>
+        <button class="btn" onclick="mcpToolsList()">📋 listar tools</button>
+        <pre id="mcp-tools-result" class="result">—</pre>
+      </section>
+      <section>
+        <h3>4. tools/call</h3>
+        <p class="muted">Llama una tool con argumentos JSON.</p>
+        <label>Tool name <input id="mcp-tool-name" value="list_tickets"></label>
+        <label>Arguments (JSON) <textarea id="mcp-tool-args" rows="3">{}</textarea></label>
+        <button class="btn primary" onclick="mcpToolsCall()">▶ call</button>
+        <pre id="mcp-call-result" class="result">—</pre>
+      </section>
+      <section>
+        <h3>5. resources/list</h3>
+        <button class="btn" onclick="mcpResourcesList()">📋 listar resources</button>
+        <pre id="mcp-resources-result" class="result">—</pre>
+      </section>
+      <section>
+        <h3>6. prompts/list + get</h3>
+        <button class="btn" onclick="mcpPromptsList()">📋 listar prompts</button>
+        <pre id="mcp-prompts-result" class="result">—</pre>
+      </section>
+    </div>
+    <h3 style="margin-top:20px">Client config (Claude Desktop / Cursor / Cline)</h3>
+    <pre class="result">{
+  "mcpServers": {
+    "azurdesk": {
+      "url": "http://localhost:5200/mcp",
+      "headers": { "Authorization": "Bearer &lt;your-jwt-token&gt;" }
+    }
+  }
+}</pre>
+  `;
+  loadMCPInfo();
+}
+
+async function loadMCPInfo() {
+  const r = await api('GET', '/mcp/info');
+  document.getElementById('mcp-server-info').innerHTML = `
+    <table class="data">
+      <tr><th>Protocol</th><td>${r.protocolVersion}</td></tr>
+      <tr><th>Server</th><td>${r.serverInfo.name} v${r.serverInfo.version}</td></tr>
+      <tr><th>Transport</th><td>${r.transport}</td></tr>
+      <tr><th>Endpoint</th><td><code>${r.endpoint}</code></td></tr>
+      <tr><th>Methods</th><td>${r.methods.join(', ')}</td></tr>
+      <tr><th>Capabilities</th><td>${Object.keys(r.capabilities).join(', ')}</td></tr>
+    </table>`;
+}
+
+async function mcpRpc(method, params, id) {
+  const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+  if (sessionId) headers['Mcp-Session-Id'] = sessionId;
+  const r = await fetch('/mcp', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ jsonrpc: '2.0', id: id || Date.now(), method, params: params || {} })
+  });
+  const sid = r.headers.get('mcp-session-id');
+  if (sid) sessionId = sid;
+  return await r.json();
+}
+
+async function mcpInitialize() {
+  const r = await mcpRpc('initialize', { clientInfo: { name: 'azurdesk-ui', version: '1.0' } }, 1);
+  if (r.result && r.result.sessionId) sessionId = r.result.sessionId;
+  document.getElementById('mcp-init-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function mcpToolsList() {
+  const r = await mcpRpc('tools/list', {}, 2);
+  document.getElementById('mcp-tools-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function mcpToolsCall() {
+  const name = document.getElementById('mcp-tool-name').value;
+  let args = {};
+  try { args = JSON.parse(document.getElementById('mcp-tool-args').value || '{}'); } catch {}
+  const r = await mcpRpc('tools/call', { name, arguments: args }, 3);
+  document.getElementById('mcp-call-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function mcpResourcesList() {
+  const r = await mcpRpc('resources/list', {}, 4);
+  document.getElementById('mcp-resources-result').textContent = JSON.stringify(r, null, 2);
+}
+
+async function mcpPromptsList() {
+  const r = await mcpRpc('prompts/list', {}, 5);
+  document.getElementById('mcp-prompts-result').textContent = JSON.stringify(r, null, 2);
 }
 
 

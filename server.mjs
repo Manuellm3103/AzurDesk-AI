@@ -52,6 +52,7 @@ import promptOptimizationService from './src/services/promptOptimizationService.
 import assetService from './src/services/assetService.js';
 import rbacService from './src/services/rbacService.js';
 import * as mcpExpandedService from './src/services/mcpExpandedService.js';
+import * as mcpStreamableHttp from './src/services/mcpStreamableHttpService.js';
 import * as obsidianService from './src/services/obsidianService.js';
 import * as aiNotesService from './src/services/aiNotesService.js';
 import * as meetingPipelineService from './src/services/meetingPipelineService.js';
@@ -1927,6 +1928,86 @@ const server = createServer(async (req, res) => {
       }) });
     }
 
+    // ===== MCP 1.0 Streamable-HTTP Transport (spec 2025-11-25) =====
+    // POST /mcp — JSON-RPC 2.0 over HTTP (with optional SSE streaming for long responses)
+    if (pathname === '/mcp' && req.method === 'POST') {
+      const accept = String(req.headers['accept'] || '');
+      const sessionId = req.headers['mcp-session-id'] || null;
+      const isStream = accept.includes('text/event-stream');
+      const ctx = { tenant_id: user.tenant_id, user_id: user.id };
+      const bodies = Array.isArray(body) ? body : [body];
+      // Pre-compute responses so we can write headers correctly in one pass
+      const responses = [];
+      let newSessionId = null;
+      for (const singleBody of bodies) {
+        if (sessionId) mcpStreamableHttp.touchSession(sessionId);
+        const r = await mcpStreamableHttp.handleJsonRpc(singleBody, ctx);
+        responses.push(r);
+        if (singleBody && singleBody.method === 'initialize' && r && r.result && r.result.sessionId) {
+          newSessionId = r.result.sessionId;
+        }
+      }
+      const headerSessionId = newSessionId || sessionId || '';
+      if (isStream) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no',
+          'Mcp-Session-Id': headerSessionId
+        });
+        for (const r of responses) {
+          try { res.write(`data: ${JSON.stringify(r)}\n\n`); } catch {}
+        }
+        try { res.end(); } catch {}
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Mcp-Session-Id': headerSessionId });
+        const bodyOut = bodies.length === 1 ? responses[0] : responses;
+        try { res.end(JSON.stringify(bodyOut)); } catch {}
+      }
+      return;
+    }
+    // GET /mcp — open SSE stream for server-initiated messages
+    if (pathname === '/mcp' && req.method === 'GET') {
+      const sessionId = req.headers['mcp-session-id'] || '';
+      if (!sessionId || !mcpStreamableHttp.getSession(sessionId)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32000, message: 'Missing or invalid Mcp-Session-Id' } }));
+      }
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+        'Mcp-Session-Id': sessionId
+      });
+      // Keep-alive ping every 15s; close on req close
+      const ping = setInterval(() => {
+        try { res.write(`: keep-alive ${Date.now()}\n\n`); mcpStreamableHttp.touchSession(sessionId); } catch { clearInterval(ping); }
+      }, 15000);
+      // Initial event
+      try { res.write(`event: ready\ndata: ${JSON.stringify({ sessionId, ts: new Date().toISOString() })}\n\n`); } catch {}
+      req.on('close', () => { clearInterval(ping); try { res.end(); } catch {} });
+      return;
+    }
+    // DELETE /mcp — terminate session
+    if (pathname === '/mcp' && req.method === 'DELETE') {
+      const sessionId = req.headers['mcp-session-id'] || '';
+      const removed = sessionId ? mcpStreamableHttp.deleteSession(sessionId) : false;
+      return json(res, { jsonrpc: '2.0', result: { terminated: removed } });
+    }
+    // GET /mcp/info — public discovery (no auth) for client config
+    if (pathname === '/mcp/info' && req.method === 'GET') {
+      return json(res, {
+        protocolVersion: mcpStreamableHttp.MCP_VERSION,
+        serverInfo: mcpStreamableHttp.buildServerInfo(),
+        capabilities: mcpStreamableHttp.buildCapabilities(),
+        transport: 'streamable-http',
+        endpoint: '/mcp',
+        methods: ['initialize', 'ping', 'tools/list', 'tools/call', 'resources/list', 'resources/read', 'prompts/list', 'prompts/get', 'notifications/initialized']
+      });
+    }
+
     return json(res, { success: false, error: 'Not found' }, 404);
   } catch (e) {
     if (e.message && e.message.includes('Payload exceeds')) {
@@ -1956,5 +2037,5 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-server.listen(PORT, () => console.log(`AzurDesk AI v2.6.10 running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`AzurDesk AI v2.6.11 running on http://localhost:${PORT}`));
 export { db, chat, telemetry };
