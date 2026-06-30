@@ -125,6 +125,19 @@ class ConductorLiteService {
     return { ...run, context: this._json(run.context), result: this._json(run.result) };
   }
 
+  listRuns(tenant_id) {
+    this.ensureTables();
+    return db.prepare('SELECT * FROM conductor_runs WHERE tenant_id=? ORDER BY created_at DESC').all(tenant_id)
+      .map(r => ({ ...r, context: this._json(r.context), result: this._json(r.result) }));
+  }
+
+  getRunEvents(tenant_id, runId) {
+    this.ensureTables();
+    const run = this.getRun(tenant_id, runId);
+    if (!run) throw new Error('run not found');
+    return run.events || [];
+  }
+
   _defaultHandler(step) {
     return async (payload) => {
       if (step.type === 'sleep') {

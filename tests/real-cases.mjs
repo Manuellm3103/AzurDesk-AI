@@ -81,6 +81,13 @@ const CASES = [
   { method: 'POST', path: '/api/authz/tuples', name: 'ReBAC: write tuple', body: { object_type: 'document', object_id: 'real-doc', relation: 'owner', user_type: 'user', user_id: 'u-real' } },
   { method: 'POST', path: '/api/authz/check', name: 'ReBAC: check owner viewer', body: { object_type: 'document', object_id: 'real-doc', relation: 'viewer', user_type: 'user', user_id: 'u-real' } },
   { method: 'GET', path: '/api/authz/tuples', name: 'ReBAC: listar tuples' },
+  // Conductor-lite real
+  { method: 'POST', path: '/api/conductor/workflows', name: 'Conductor-lite: definir workflow', body: { name: 'real-approval', dag: { steps: [
+    { seq: 1, id: 'submit', type: 'action', deps: [], handler: 'noop' },
+    { seq: 2, id: 'review', type: 'action', deps: ['submit'], handler: 'noop' },
+    { seq: 3, id: 'finalize', type: 'action', deps: ['review'], handler: 'noop' }
+  ] }, compensation: [{ seq: 1, id: 'revoke', type: 'action', handler: 'noop' }] } },
+  { method: 'GET', path: '/api/conductor/workflows', name: 'Conductor-lite: listar workflows' },
   { method: 'GET', path: '/api/health', name: 'Health check' },
   { method: 'GET', path: '/api/health/db', name: 'Health DB check' }
 ];

@@ -232,6 +232,32 @@ async function main() {
   add('GET /api/authz/tuples', (await request('GET', '/api/authz/tuples?object_type=document', null, token)).status === 200);
   add('POST /api/authz/snapshot', (await request('POST', '/api/authz/snapshot', { object_type: 'document', object_id: 'smoke-doc' }, token)).status === 200);
 
+  // Conductor-lite
+  const conductorWf = await request('POST', '/api/conductor/workflows', {
+    name: 'smoke-approval',
+    dag: {
+      steps: [
+        { seq: 1, id: 'request', type: 'action', deps: [], handler: 'noop' },
+        { seq: 2, id: 'approve', type: 'action', deps: ['request'], handler: 'noop' },
+        { seq: 3, id: 'notify', type: 'action', deps: ['approve'], handler: 'noop' }
+      ]
+    },
+    compensation: [{ seq: 1, id: 'rollback', type: 'action', handler: 'noop' }]
+  }, token);
+  add('POST /api/conductor/workflows', conductorWf.status === 200);
+  if (conductorWf.body.workflow?.id) {
+    const wfId = conductorWf.body.workflow.id;
+    add('GET /api/conductor/workflows', (await request('GET', '/api/conductor/workflows', null, token)).status === 200);
+    add('GET /api/conductor/workflows/:id', (await request('GET', `/api/conductor/workflows/${wfId}`, null, token)).status === 200);
+    const runRes = await request('POST', '/api/conductor/runs', { workflow_id: wfId, context: { requester: 'smoke' } }, token);
+    add('POST /api/conductor/runs', runRes.status === 200);
+    if (runRes.body.run?.runId) {
+      const runId = runRes.body.run.runId;
+      add('GET /api/conductor/runs', (await request('GET', '/api/conductor/runs', null, token)).status === 200);
+      add('GET /api/conductor/runs/:id', (await request('GET', `/api/conductor/runs/${runId}`, null, token)).status === 200);
+    }
+  }
+
   console.log('SMOKE AzurDesk AI v2.6.7 AaaS+SaaS + Innovaciones 2026');
   for (const c of checks) console.log(`${c.ok ? '✅' : '❌'} ${c.name} ${!c.ok ? '(falló)' : ''}`);
   const ok = checks.filter((c) => c.ok).length;

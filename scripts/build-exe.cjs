@@ -9,11 +9,11 @@ function main() {
   fs.mkdirSync(outDir, { recursive: true });
 
   // Copy runtime files first
-  const copyFiles = ['server.mjs', 'package.json', 'public', 'src', 'scripts', 'docs', 'data'];
+  const copyFiles = ['server.mjs', 'package.json', 'public', 'src', 'scripts', 'docs', 'data', '.env.example', 'README.PORTABLE.md', 'launch-azurdesk.bat', 'launch-azurdesk.sh', 'verify-portable.bat', 'verify-portable.sh', '.gitignore'];
   for (const f of copyFiles) {
     const src = path.join(root, f);
     const dst = path.join(outDir, f);
-    if (!fs.existsSync(src)) continue;
+    if (!fs.existsSync(src)) { console.warn('skip missing', f); continue; }
     if (fs.statSync(src).isDirectory()) {
       fs.mkdirSync(dst, { recursive: true });
       execSync(`xcopy "${src}" "${dst}" /E /I /Q /Y`, { cwd: root, stdio: 'ignore' });
@@ -23,7 +23,7 @@ function main() {
   }
 
   // Primary portable launcher: batch that runs node with server.mjs in same folder
-  fs.writeFileSync(path.join(outDir, 'azurdesk-ai.bat'), '@echo off\ncd /d "%~dp0"\nnode server.mjs\n');
+  fs.writeFileSync(path.join(outDir, 'azurdesk-ai.bat'), '@echo off\ncd /d "%~dp0"\nif not exist .env (\n  echo =====================================================\n  echo No se encontro .env. Copie .env.example a .env y genere JWT_SECRET.\n  echo =====================================================\n  pause\n  exit /b 1\n)\nfor /f "usebackq tokens=*" %%a in (`.env`) do set "%%a"\nif "%JWT_SECRET%"=="" (\n  echo JWT_SECRET requerido.\n  pause\n  exit /b 1\n)\nnode server.mjs\n');
 
   // Secondary Node launcher for pkg attempt
   const launcher = path.join(outDir, 'azurdesk-ai-launcher.js');

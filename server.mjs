@@ -1223,17 +1223,36 @@ const server = createServer(async (req, res) => {
     }
     if (pathname.startsWith('/api/conductor/workflows/') && pathname.endsWith('/runs') && req.method === 'POST') {
       const id = pathname.split('/')[4];
-      const run = conductorLiteService.startRun(user.tenant_id, id, body);
+      const run = conductorLiteService.startRun(user.tenant_id, id, body, durableExecutionService);
       return json(res, { success: true, run });
     }
+    if (pathname.startsWith('/api/conductor/workflows/') && !pathname.endsWith('/runs') && !pathname.endsWith('/resume') && req.method === 'GET') {
+      const id = pathname.split('/').pop();
+      const wf = conductorLiteService.getWorkflow(user.tenant_id, id);
+      if (!wf) return send404(res, 'Not found');
+      return json(res, { success: true, workflow: wf });
+    }
+    if (pathname === '/api/conductor/runs' && req.method === 'POST') {
+      const run = conductorLiteService.startRun(user.tenant_id, body.workflow_id, body.context || {}, durableExecutionService);
+      return json(res, { success: true, run });
+    }
+    if (pathname === '/api/conductor/runs' && req.method === 'GET') {
+      return json(res, { success: true, runs: conductorLiteService.listRuns(user.tenant_id) });
+    }
     if (pathname.startsWith('/api/conductor/runs/') && req.method === 'GET') {
-      const id = pathname.split('/')[4];
-      return json(res, { success: true, run: conductorLiteService.getRun(user.tenant_id, id) });
+      const id = pathname.split('/').pop();
+      const run = conductorLiteService.getRun(user.tenant_id, id);
+      if (!run) return send404(res, 'Not found');
+      return json(res, { success: true, run });
     }
     if (pathname.startsWith('/api/conductor/runs/') && pathname.endsWith('/resume') && req.method === 'POST') {
       const id = pathname.split('/')[4];
-      const run = conductorLiteService.resumeRun(user.tenant_id, id, body);
+      const run = await conductorLiteService.resumeRun(user.tenant_id, id, { durableExec: durableExecutionService });
       return json(res, { success: true, run });
+    }
+    if (pathname.startsWith('/api/conductor/runs/') && pathname.endsWith('/events') && req.method === 'GET') {
+      const id = pathname.split('/')[4];
+      return json(res, { success: true, events: conductorLiteService.getRunEvents(user.tenant_id, id) });
     }
 
     // A2A cards
