@@ -387,6 +387,9 @@ const server = createServer(async (req, res) => {
     if (pathname === '/api/billing/invoice' && req.method === 'GET') {
       return json(res, billingService.getInvoice(user.tenant_id, url.searchParams.get('period')));
     }
+    if (pathname === '/api/billing/summary' && req.method === 'GET') {
+      return json(res, { success: true, summary: billingService.getSummary(user.tenant_id) });
+    }
 
     // Ciclo 4: Agent Workforce, Agentic RAG, ABAC, Agent Eval, Mesh Sync
     if (pathname === '/api/workforce/schedule' && req.method === 'POST') {
@@ -1269,6 +1272,17 @@ const server = createServer(async (req, res) => {
     }
     if (pathname === '/api/workflows/durable' && req.method === 'GET') {
       return json(res, { success: true, workflows: durableWorkflowService.list(user.tenant_id) });
+    }
+    if (pathname === '/api/durable-executions' && req.method === 'GET') {
+      return json(res, { success: true, executions: durableExecutionService.list(user.tenant_id, { limit: 50 }) });
+    }
+    if (pathname === '/api/durable-executions' && req.method === 'POST') {
+      const e = durableExecutionService.start(user.tenant_id, body || {});
+      return json(res, { success: true, execution: e });
+    }
+    if (pathname.startsWith('/api/durable-executions/') && req.method === 'GET') {
+      const id = pathname.split('/').pop();
+      return json(res, { success: true, execution: durableExecutionService.get(user.tenant_id, id) });
     }
 
     // Conductor-lite Workflows

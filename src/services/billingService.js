@@ -31,6 +31,22 @@ class BillingService {
     return { tenant_id, period: usage.period, lines, total: Math.round(total * 1000) / 1000, currency: 'USD' };
   }
 
+  getSummary(tenant_id) {
+    const invoice = this.getInvoice(tenant_id);
+    const periods = db.prepare('SELECT DISTINCT period FROM billing_usage WHERE tenant_id = ? ORDER BY period DESC LIMIT 6').all(tenant_id);
+    const totalsByPeriod = periods.map(p => {
+      const inv = this.getInvoice(tenant_id, p.period);
+      return { period: p.period, total: inv.total, items: inv.lines.length };
+    });
+    return {
+      tenant_id,
+      current_period: invoice.period,
+      current_total: invoice.total,
+      currency: invoice.currency,
+      history: totalsByPeriod
+    };
+  }
+
   currentPeriod() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
