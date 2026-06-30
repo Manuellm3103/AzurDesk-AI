@@ -1,3 +1,29 @@
+## [2.6.9] - 2026-06-30 — Prompt Cache + Reasoning Effort + A2A Streaming NDJSON
+
+### Added
+- **PromptCacheService** (ADR-039): cache determinístico basado en hash SHA-256 del prompt normalizado + tools schema. Tablas `prompt_cache` y `prompt_cache_stats` con TTL configurable por provider (Anthropic 5min, OpenAI 10min, Ollama 15min). Tracking automático de tokens/cost ahorrados. Compatible con la semántica de Anthropic prompt caching y OpenAI auto-cache. Skip automático para reasoning effort ≥ medium (output muy volátil).
+- **Reasoning Effort controls** en `/api/llm/generate`: presets `none|low|medium|high` con temperature y max_tokens_factor. Compatible con OpenAI o1 reasoning y Anthropic extended thinking.
+- **A2A Streaming NDJSON** endpoint `GET /api/a2a/stream`: server-streaming con chunked transfer, eventos `open|batch|close`, configurable `interval_ms` y `max_batches`. Compatible con A2A protocol y consumers tipo Server-Sent Events.
+- **Nuevos endpoints REST**:
+  - `GET /api/llm/cache/stats?days=N` — totales + breakdown diario (hits, misses, tokens_saved, cost_saved, hit_rate).
+  - `POST /api/llm/cache/invalidate` — purga por tenant o por (provider, model).
+  - `POST /api/llm/cache/cleanup` — barrido de entradas expiradas.
+  - `POST /api/llm/generate` con `reasoning`, `useCache`, `toolsSchema` — campos opcionales retrocompatibles.
+  - `GET /api/a2a/stream?agent_id=X&interval_ms=N&max_batches=N` — NDJSON stream.
+- **UI Tab "LLM Cache & Reasoning"**: KPIs de ahorro, tabla por día, controles de strategy/reasoning/useCache, test inline de generate con cache.
+- **Tests**: `tests/prompt-cache.mjs` (5 tests) + `tests/a2a-stream.mjs` (2 tests).
+
+### Changed
+- `server.mjs`: import de `promptCacheService`; `/api/llm/generate` con cache wrapper; nuevos endpoints cache + A2A stream.
+- `public/index.html`: nav link "LLM Cache & Reasoning".
+- `public/static/app.js`: renderer `renderLLMCache` + helpers `loadLLMCacheStats`, `testLLMGenerate`, `invalidateLLMCache`, `cleanupLLMCache`; entry en `RENDERERS` map.
+
+### Verification
+- `npm run build`: 229/229 pass, 1 skip
+- `npm run smoke`: 161/161
+- `node tests/real-cases.mjs`: 59/59
+- UI/backend audit: 230+ exact, 89+ dynamic, 129 calls, 56 views, 56 renderers — PASSED
+
 ## [2.6.8] - 2026-06-29 — A-G Wire-up: Conductor-lite, LLM Router, MCP Gateway, Failure Prediction, ABAC/ReBAC, Portable
 
 ### Added

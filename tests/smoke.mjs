@@ -1,6 +1,7 @@
 import http from 'http';
 
 const opts = { hostname: 'localhost', port: process.env.PORT || 5200 };
+const PORT = opts.port;
 
 function request(method, path, body, token, expectJson = true) {
   return new Promise((resolve) => {
@@ -257,6 +258,32 @@ async function main() {
       add('GET /api/conductor/runs/:id', (await request('GET', `/api/conductor/runs/${runId}`, null, token)).status === 200);
     }
   }
+
+  // v2.6.9 — Prompt cache endpoints
+  const cacheStatsRes = await request('GET', '/api/llm/cache/stats?days=7', null, token);
+  add('GET /api/llm/cache/stats', cacheStatsRes.status === 200 && cacheStatsRes.body.totals !== undefined);
+  const cacheInvRes = await request('POST', '/api/llm/cache/invalidate', { modelProvider: 'noop', modelName: 'noop' }, token);
+  add('POST /api/llm/cache/invalidate', cacheInvRes.status === 200 && typeof cacheInvRes.body.removed === 'number');
+  const cacheCleanRes = await request('POST', '/api/llm/cache/cleanup', {}, token);
+  add('POST /api/llm/cache/cleanup', cacheCleanRes.status === 200 && typeof cacheCleanRes.body.removed === 'number');
+  // /api/llm/generate with useCache=false (we don't depend on real LLM)
+  const genRes = await request('POST', '/api/llm/generate', { prompt: 'ping', useCache: false, reasoning: 'low' }, token);
+  add('POST /api/llm/generate (useCache=false, reasoning=low)', genRes.status === 200 && genRes.body.reasoning === 'low');
+
+  // v2.6.9 — A2A streaming NDJSON
+  const streamRes = await new Promise((resolve) => {
+    const url = `http://127.0.0.1:${PORT}/api/a2a/stream?agent_id=smoke&interval_ms=600&max_batches=2`;
+    const req = http.request(url, { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } }, (r) => {
+      let data = '';
+      r.setEncoding('utf8');
+      r.on('data', (c) => { data += c; });
+      r.on('end', () => resolve({ status: r.statusCode, body: data }));
+    });
+    req.on('error', (e) => resolve({ status: 0, body: String(e) }));
+    req.end();
+  });
+  const streamLines = streamRes.body.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  add('GET /api/a2a/stream (NDJSON)', streamRes.status === 200 && streamLines.length >= 3 && streamLines[0].event === 'open');
 
   console.log('SMOKE AzurDesk AI v2.6.7 AaaS+SaaS + Innovaciones 2026');
   for (const c of checks) console.log(`${c.ok ? '✅' : '❌'} ${c.name} ${!c.ok ? '(falló)' : ''}`);

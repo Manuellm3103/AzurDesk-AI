@@ -89,7 +89,11 @@ const CASES = [
   ] }, compensation: [{ seq: 1, id: 'revoke', type: 'action', handler: 'noop' }] } },
   { method: 'GET', path: '/api/conductor/workflows', name: 'Conductor-lite: listar workflows' },
   { method: 'GET', path: '/api/health', name: 'Health check' },
-  { method: 'GET', path: '/api/health/db', name: 'Health DB check' }
+  { method: 'GET', path: '/api/health/db', name: 'Health DB check' },
+  // v2.6.9 — Prompt cache + Reasoning effort
+  { method: 'GET', path: '/api/llm/cache/stats?days=7', name: 'Prompt cache: stats' },
+  { method: 'POST', path: '/api/llm/cache/invalidate', name: 'Prompt cache: invalidate', body: { modelProvider: 'noop', modelName: 'noop' } },
+  { method: 'POST', path: '/api/llm/cache/cleanup', name: 'Prompt cache: cleanup', body: {} }
 ];
 
 async function main() {

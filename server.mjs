@@ -15,6 +15,7 @@ import cuaService from './src/services/cuaService.js';
 import memoryService from './src/services/memoryService.js';
 import graphRAG from './src/ml/graphRAG.js';
 import { generate as llmGenerate, listModels, routeModel, classifyComplexity, routingStats } from './src/services/llmRouter.js';
+import promptCache from './src/services/promptCacheService.js';
 import { TokenizerService } from './src/ml/tokenizer.js';
 
 const tokenizer = new TokenizerService(db);
@@ -596,10 +597,67 @@ const server = createServer(async (req, res) => {
       return json(res, { success: true, complexity: classifyComplexity(prompt) });
     }
     if (pathname === '/api/llm/generate' && req.method === 'POST') {
-      const { prompt, complexity = 'medium', preferred, strategy = 'balanced', maxCostPer1M, fallback = true } = body || {};
+      const { prompt, complexity = 'medium', preferred, strategy = 'balanced', maxCostPer1M, fallback = true, reasoning = 'none', useCache = true, toolsSchema } = body || {};
       if (!prompt) return json(res, { success: false, error: 'prompt requerido' }, 400);
-      const r = await llmGenerate(prompt, { complexity, preferred, strategy, maxCostPer1M, fallback, tenant_id: user.tenant_id });
-      return json(res, { success: true, ...r });
+      // Prompt cache lookup (skip for high reasoning — output is too volatile)
+      const cacheDisabled = !useCache || reasoning === 'high' || reasoning === 'medium';
+      if (!cacheDisabled) {
+        // Use a synthetic provider/model key — the actual provider is decided by the router
+        const cacheKey = { modelProvider: 'router', modelName: strategy + '|' + complexity, prompt, toolsSchema };
+        const cached = promptCache.get(user.tenant_id, cacheKey);
+        if (cached.hit) {
+          return json(res, {
+            success: true,
+            cached: true,
+            cache_id: cached.cache_id,
+            text: cached.response.text,
+            cost_usd: 0,
+            input_tokens: cached.input_tokens,
+            output_tokens: cached.output_tokens,
+            reasoning,
+            strategy,
+            complexity
+          });
+        }
+      }
+      const r = await llmGenerate(prompt, { complexity, preferred, strategy, maxCostPer1M, fallback, tenant_id: user.tenant_id, reasoning });
+      if (r.success && !cacheDisabled) {
+        promptCache.set(user.tenant_id, {
+          modelProvider: 'router',
+          modelName: strategy + '|' + complexity,
+          prompt,
+          toolsSchema,
+          response: { text: r.text, provider: r.provider, model: r.model },
+          inputTokens: r.input_tokens || 0,
+          outputTokens: r.output_tokens || 0,
+          cost: r.cost_usd || 0
+        });
+      }
+      return json(res, { success: true, cached: false, reasoning, strategy, complexity, ...r });
+    }
+
+    // Prompt cache management endpoints
+    if (pathname === '/api/llm/cache/stats' && req.method === 'GET') {
+      const days = Number(new URL(req.url, 'http://x').searchParams.get('days')) || 7;
+      const stats = promptCache.stats(user.tenant_id, { days });
+      const totalHits = stats.reduce((s, r) => s + (r.hits || 0), 0);
+      const totalMisses = stats.reduce((s, r) => s + (r.misses || 0), 0);
+      const totalTokensSaved = stats.reduce((s, r) => s + (r.tokens_saved || 0), 0);
+      const totalCostSaved = stats.reduce((s, r) => s + (r.cost_saved || 0), 0);
+      return json(res, {
+        success: true,
+        stats,
+        totals: { hits: totalHits, misses: totalMisses, tokens_saved: totalTokensSaved, cost_saved: totalCostSaved, hit_rate: totalHits + totalMisses > 0 ? totalHits / (totalHits + totalMisses) : 0 }
+      });
+    }
+    if (pathname === '/api/llm/cache/invalidate' && req.method === 'POST') {
+      const { modelProvider, modelName } = body || {};
+      const removed = promptCache.invalidate(user.tenant_id, { modelProvider, modelName });
+      return json(res, { success: true, removed });
+    }
+    if (pathname === '/api/llm/cache/cleanup' && req.method === 'POST') {
+      const removed = promptCache.cleanup();
+      return json(res, { success: true, removed });
     }
 
     // Ollama Cloud Auth
@@ -1272,6 +1330,45 @@ const server = createServer(async (req, res) => {
     if (pathname === '/api/a2a/cards' && req.method === 'GET') {
       return json(res, { success: true, cards: a2aService.list(user.tenant_id) });
     }
+    // A2A streaming inbox — NDJSON over chunked transfer (2026 pattern, A2A protocol friendly)
+    if (pathname === '/api/a2a/stream' && req.method === 'GET') {
+      const agentId = url.searchParams.get('agent_id') || '';
+      const secret = process.env.A2A_SECRET || 'a2a-local-secret';
+      const intervalMs = Math.max(500, Math.min(10000, Number(url.searchParams.get('interval_ms')) || 2000));
+      const maxBatches = Math.max(1, Math.min(60, Number(url.searchParams.get('max_batches')) || 5));
+      res.writeHead(200, {
+        'Content-Type': 'application/x-ndjson',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+      });
+      let batches = 0;
+      let closed = false;
+      const write = (obj) => {
+        if (closed) return;
+        try { res.write(JSON.stringify(obj) + '\n'); } catch { closed = true; }
+      };
+      write({ event: 'open', tenant_id: user.tenant_id, agent_id: agentId, interval_ms: intervalMs, ts: new Date().toISOString() });
+      const tick = () => {
+        if (closed || batches >= maxBatches) {
+          write({ event: 'close', batches, ts: new Date().toISOString() });
+          try { res.end(); } catch {}
+          closed = true;
+          return;
+        }
+        try {
+          const cards = a2aService.receiveCards(user.tenant_id, agentId, secret);
+          write({ event: 'batch', index: batches, count: cards.length, cards, ts: new Date().toISOString() });
+        } catch (e) {
+          write({ event: 'error', error: e.message, ts: new Date().toISOString() });
+        }
+        batches++;
+      };
+      const timer = setInterval(tick, intervalMs);
+      tick();
+      req.on('close', () => { closed = true; clearInterval(timer); });
+      return;
+    }
 
     // Local LLM router
     if (pathname === '/api/local-llm/models' && req.method === 'POST') {
@@ -1845,5 +1942,5 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-server.listen(PORT, () => console.log(`AzurDesk AI v2.6.7 running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`AzurDesk AI v2.6.9 running on http://localhost:${PORT}`));
 export { db, chat, telemetry };

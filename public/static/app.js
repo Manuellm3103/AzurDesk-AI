@@ -53,7 +53,8 @@ const VIEW_LABELS = {
   'causal-alerts': 'Causal Alerts', remediation: 'Remediation DSL', 'failure-prediction': 'Failure Prediction', rebac: 'ReBAC AuthZ',
   'agent-cost': 'Agent Cost', billing: 'Billing', onboarding: 'Onboarding', legal: 'Legal', builder: 'Web Builder',
   chat: 'Chat AI', ai: 'AI Lab', cua: 'Computer Use', skills: 'Simplicio + Obsidian', docs: 'Documentos OCR',
-  'agent-tracing': 'Agent Tracing'
+  'agent-tracing': 'Agent Tracing',
+  'llm-cache': 'LLM Cache & Reasoning'
 };
 
 function show(view) {
@@ -156,7 +157,8 @@ const RENDERERS = {
   cua: () => renderCUA,
   skills: () => renderSkills,
   docs: () => renderDocs,
-  'agent-tracing': () => renderAgentTracing
+  'agent-tracing': () => renderAgentTracing,
+  'llm-cache': () => renderLLMCache
 };
 
 async function renderDocs(el) {
@@ -2734,6 +2736,94 @@ function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+async function renderLLMCache(el) {
+  if (!el) return;
+  el.innerHTML = `
+    <h2>🧠 LLM Cache &amp; Reasoning Effort</h2>
+    <p class="muted">Prompt cache determinístico (SHA-256) + control de reasoning effort (none/low/medium/high). Compatible con Anthropic prompt caching y OpenAI o1-style reasoning. Reduce costos de LLM hasta 90% en prompts repetitivos.</p>
+    <div class="grid two">
+      <section>
+        <h3>Cache Stats</h3>
+        <div id="llm-cache-totals">Cargando...</div>
+        <div id="llm-cache-table"></div>
+        <button class="btn" onclick="loadLLMCacheStats()">↻ Refrescar</button>
+        <button class="btn danger" onclick="invalidateLLMCache()">🗑️ Invalidar todo</button>
+        <button class="btn" onclick="cleanupLLMCache()">🧹 Cleanup expirados</button>
+      </section>
+      <section>
+        <h3>Test Generate (con cache + reasoning)</h3>
+        <label>Prompt <textarea id="llm-cache-prompt" rows="3">¿Cuál es el SLA?</textarea></label>
+        <label>Strategy
+          <select id="llm-cache-strategy">
+            <option>balanced</option><option>cheap</option><option>fast</option><option>quality</option>
+          </select>
+        </label>
+        <label>Reasoning effort
+          <select id="llm-cache-reasoning">
+            <option>none</option><option>low</option><option>medium</option><option>high</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="llm-cache-use" checked> Usar cache</label>
+        <button class="btn primary" onclick="testLLMGenerate()">▶ Generar</button>
+        <pre id="llm-cache-result" class="result">—</pre>
+      </section>
+    </div>
+  `;
+  loadLLMCacheStats();
+}
+
+async function loadLLMCacheStats() {
+  try {
+    const r = await api('GET', '/api/llm/cache/stats?days=7');
+    const totals = r.totals || {};
+    document.getElementById('llm-cache-totals').innerHTML = `
+      <div class="kpi-row">
+        <div class="kpi"><b>${totals.hits || 0}</b><span>Hits</span></div>
+        <div class="kpi"><b>${totals.misses || 0}</b><span>Misses</span></div>
+        <div class="kpi"><b>${(totals.hit_rate * 100 || 0).toFixed(1)}%</b><span>Hit rate</span></div>
+        <div class="kpi"><b>${totals.tokens_saved || 0}</b><span>Tokens saved</span></div>
+        <div class="kpi"><b>$${(totals.cost_saved || 0).toFixed(4)}</b><span>Cost saved</span></div>
+      </div>
+    `;
+    const rows = (r.stats || []).map(s => `<tr><td>${s.day}</td><td>${s.hits}</td><td>${s.misses}</td><td>${s.tokens_saved}</td><td>$${(s.cost_saved || 0).toFixed(4)}</td></tr>`).join('');
+    document.getElementById('llm-cache-table').innerHTML = `
+      <table class="data"><thead><tr><th>Día</th><th>Hits</th><th>Misses</th><th>Tokens</th><th>USD</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="muted">Sin datos aún</td></tr>'}</tbody></table>
+    `;
+  } catch (e) {
+    document.getElementById('llm-cache-totals').textContent = 'Error: ' + e.message;
+  }
+}
+
+async function testLLMGenerate() {
+  const prompt = document.getElementById('llm-cache-prompt').value;
+  const strategy = document.getElementById('llm-cache-strategy').value;
+  const reasoning = document.getElementById('llm-cache-reasoning').value;
+  const useCache = document.getElementById('llm-cache-use').checked;
+  const out = document.getElementById('llm-cache-result');
+  out.textContent = '⏳ Generando...';
+  try {
+    const r = await api('POST', '/api/llm/generate', { prompt, strategy, reasoning, useCache });
+    out.textContent = JSON.stringify(r, null, 2);
+    loadLLMCacheStats();
+  } catch (e) {
+    out.textContent = '❌ ' + e.message;
+  }
+}
+
+async function invalidateLLMCache() {
+  if (!confirm('¿Invalidar toda la cache del tenant?')) return;
+  const r = await api('POST', '/api/llm/cache/invalidate', {});
+  alert(`Eliminadas: ${r.removed}`);
+  loadLLMCacheStats();
+}
+
+async function cleanupLLMCache() {
+  const r = await api('POST', '/api/llm/cache/cleanup', {});
+  alert(`Expiradas eliminadas: ${r.removed}`);
+  loadLLMCacheStats();
 }
 
 
