@@ -2,6 +2,8 @@ import { fetch } from 'undici';
 import db from './db.js';
 import { now, safeJson, classifyComplexity } from './_utils.js';
 import * as providerAccount from './providerAccountService.js';
+import * as genai from './genaiInstrumentation.js';
+import agentTracingService from './agentTracingService.js';
 
 const GLOBAL_TIMEOUT = 30000;
 const CIRCUIT_BREAK_MS = 60000;
@@ -259,6 +261,14 @@ async function generate(tenant_id, body = {}, { fallback = true, stream = false,
   const messages = normalizeMessages(body.messages || body.prompt);
   const textQuery = messages.map((m) => typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).join(' ');
   const complexity = body.complexity || classifyComplexity(textQuery);
+  // OTel GenAI: open span before candidate selection so observability captures
+  // the full latency, including provider routing.
+  const traceSpan = genai.startGenAISpan(agentTracingService, {
+    traceId: body.trace_id,
+    tenantId: tenant_id,
+    operation: 'genai.chat',
+    complexity
+  });
   const candidates = buildCandidates(tenant_id, {
     complexity,
     strategy: body.strategy || 'balanced',
@@ -304,6 +314,18 @@ async function generate(tenant_id, body = {}, { fallback = true, stream = false,
     error: success ? null : lastError
   });
   if (success) {
+    // OTel GenAI: enrich span with canonical attributes (system, model, tokens, cost, finish_reason)
+    genai.finishGenAISpan(agentTracingService, traceSpan, {
+      success: true,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      cost_usd: Math.round(cost * 1_000_000) / 1_000_000,
+      latency_ms,
+      max_tokens: requestBody.max_tokens,
+      model_provider: candidate.provider.kind,
+      model_id: candidate.model_id,
+      finish_reason: 'stop'
+    });
     return {
       success: true,
       provider: candidate.provider.name,
@@ -312,10 +334,23 @@ async function generate(tenant_id, body = {}, { fallback = true, stream = false,
       complexity,
       text,
       latency_ms,
-      cost_usd: Math.round(cost * 1_000_000) / 1_000_000
+      cost_usd: Math.round(cost * 1_000_000) / 1_000_000,
+      trace_span_id: traceSpan.span_id
     };
   }
-  return { success: false, error: lastError, fallback_used: fallback };
+  // OTel GenAI: record failure
+  genai.finishGenAISpan(agentTracingService, traceSpan, {
+    success: false,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    cost_usd: 0,
+    latency_ms,
+    max_tokens: requestBody.max_tokens,
+    model_provider: candidate?.provider?.kind,
+    model_id: candidate?.model_id,
+    finish_reason: 'error'
+  });
+  return { success: false, error: lastError, fallback_used: fallback, trace_span_id: traceSpan.span_id };
 }
 
 function listAvailableModels(tenant_id) {
