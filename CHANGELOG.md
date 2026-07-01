@@ -1,3 +1,23 @@
+## [2.6.12] - 2026-06-30 — Embeddings + HNSW + Bun compile POC
+
+### Added
+- **embeddingService.js**: vector store local con 256-dim BMF embeddings, búsqueda HNSW (Hierarchical Navigable Small World) aproximada, búsqueda exacta kNN, búsqueda híbrida semantic+keyword. Almacenamiento en SQLite. Pluggable: cambiar pseudoEmbed() por text-embedding-3-small o bge-small sin tocar API.
+- **6 endpoints REST**: POST /api/embeddings (upsert), /search (kNN exacto), /hnsw (approximate), /hybrid (semantic+keyword), GET /stats, DELETE selectivo.
+- **UI tab "Embeddings & HNSW"** con playground completo: ingestar, search exacto, HNSW, hybrid, stats.
+- **10 nuevos tests** (tests/embeddings.mjs).
+- **Bun compile POC**: `bun build --compile --target=bun-windows-x64` produce .exe 117 MB. Bloqueado por incompatibilidad de Bun 1.3.14 con bson (node:v8.startupSnapshot). ADR-041 documenta decisión de quedarse con Node 24 + pkg wrapper para producción.
+- **Portable v2.6.12** con version bump (2.6.2 -> 2.6.12 en health, 2.6.11 -> 2.6.12 en mcpStreamableHttpService).
+
+### Verification
+- `npm test`: 259/260 pass, 1 skip
+- `npm run smoke`: 168/168
+- `node tests/real-cases.mjs`: 63/63
+- UI/backend audit: 242 exact + 91 dynamic + 138 calls + 58 views + 58 renderers — PASSED
+- Full-stack 22/24 (incluye embeddings) probes 200 OK con JWT real
+- Embeddings round-trip: upsert 256-dim, search score 0.82, hnsw, hybrid score 0.87
+- MCP round-trip: info v2.6.12 + init + tools/list (10) + tools/call + resources (3) + prompts (2)
+- Portable `AzurDeskAI_v2.6.12.zip`: 15.3 MB
+
 ## [2.6.12] - 2026-06-30 — Embeddings + HNSW (vector search local)
 
 ### Added

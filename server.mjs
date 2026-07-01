@@ -219,7 +219,7 @@ const server = createServer(async (req, res) => {
       return json(res, {
         success: true,
         name: 'AzurDesk AI',
-        version: '2.6.2',
+        version: '2.6.12',
         status: 'operational',
         environment: NODE_ENV,
         checks: {

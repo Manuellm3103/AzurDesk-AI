@@ -17,7 +17,7 @@ import { MCP_TOOLS, handleMCPMessage as handleExpandedMessage } from './mcpExpan
 
 const MCP_VERSION = '2025-11-25';
 const SERVER_NAME = 'azurdesk-ai';
-const SERVER_VERSION = '2.6.11';
+const SERVER_VERSION = '2.6.12';
 
 // In-memory session store (per-process; for multi-instance use Redis)
 const sessions = new Map();
