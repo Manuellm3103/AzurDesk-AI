@@ -1,7 +1,0 @@
-v2.6.12 version unification: 2.6.2 -> 2.6.12 in health, 2.6.11 -> 2.6.12 in mcpStreamableHttpService
-
-- server.mjs health endpoint now reports v2.6.12
-- mcpStreamableHttpService SERVER_VERSION now 2.6.12
-- Regenerated portable AzurDeskAI_v2.6.12.zip (15.3MB)
-- Verified: build 259/260, smoke 168/168, real 63/63, audit 242/91/138/58/58 PASSED
-- Full-stack 24/24 probes 200 OK, MCP v2.6.12 in /mcp/info
