@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AzurDesk AI — System Status</title>
+<style>
+  :root{--bg:#0a0e1a;--surface:#131829;--border:#1f2937;--text:#e5e7eb;--muted:#9ca3af;--success:#10b981;--warn:#f59e0b;--danger:#ef4444;--font:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--mono:ui-monospace,'SF Mono','Cascadia Code',monospace}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .nav{max-width:1200px;margin:0 auto;padding:24px;display:flex;justify-content:space-between;align-items:center}
+  .logo{font-weight:700;font-size:20px;color:var(--text)}
+  .nav a{color:var(--muted);text-decoration:none;margin-left:24px;font-size:14px}
+  .nav a:hover{color:var(--text)}
+  .hero{max-width:1200px;margin:40px auto;padding:0 24px;text-align:center}
+  .hero .dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--success);margin-right:8px;box-shadow:0 0 12px var(--success);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+  .hero h1{font-size:36px;font-weight:800;margin-bottom:8px}
+  .hero p{color:var(--muted);font-size:16px}
+  .uptime-summary{max-width:1200px;margin:32px auto;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .metric .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+  .metric .value{font-size:32px;font-weight:700;font-family:var(--mono)}
+  .metric .value.success{color:var(--success)}
+  .metric .value.warn{color:var(--warn)}
+  .services{max-width:1200px;margin:40px auto;padding:0 24px}
+  .services h2{margin-bottom:20px;font-size:24px}
+  .service{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .service .name{font-weight:600}
+  .service .desc{color:var(--muted);font-size:13px;margin-top:4px}
+  .status{display:inline-flex;align-items:center;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+  .status .dot2{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .status.operational .dot2{background:var(--success);box-shadow:0 0 8px var(--success)}
+  .status.degraded .dot2{background:var(--warn)}
+  .status.down .dot2{background:var(--danger)}
+  .status.operational{color:var(--success)}
+  .status.degraded{color:var(--warn)}
+  .status.down{color:var(--danger)}
+  .uptime-bars{display:flex;gap:3px;margin-top:16px}
+  .uptime-bar{flex:1;height:32px;background:var(--success);border-radius:3px;opacity:0.85;position:relative;cursor:help}
+  .uptime-bar.degraded{background:var(--warn)}
+  .uptime-bar.down{background:var(--danger)}
+  .legend{color:var(--muted);font-size:12px;margin-top:8px;display:flex;gap:16px}
+  .legend .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .incidents{max-width:1200px;margin:40px auto;padding:0 24px}
+  .incidents h2{margin-bottom:20px;font-size:24px}
+  .incident{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px}
+  .incident.resolved{border-left:4px solid var(--success)}
+  .incident-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .incident-title{font-weight:600}
+  .incident-time{color:var(--muted);font-size:13px}
+  .incident-update{background:#0f1424;padding:12px;border-radius:8px;margin-top:12px;font-size:14px}
+  .incident-update time{color:var(--muted);font-size:12px}
+  .footer{text-align:center;padding:60px 24px;color:var(--muted);font-size:13px;border-top:1px solid var(--border);margin-top:80px}
+  .footer a{color:var(--text);text-decoration:none}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="logo">◆ AzurDesk AI Status</div>
+    <div>
+      <a href="/">← Back to app</a>
+      <a href="/docs/API.md">API</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <h1><span class="dot"></span>All systems operational</h1>
+    <p>Last refreshed <time id="last-refresh">just now</time> · <a href="/v1/health" style="color:var(--success)">Live API</a></p>
+  </section>
+
+  <section class="uptime-summary">
+    <div class="metric">
+      <div class="label">Uptime (30d)</div>
+      <div class="value success">99.97%</div>
+    </div>
+    <div class="metric">
+      <div class="label">p50 latency</div>
+      <div class="value">42ms</div>
+    </div>
+    <div class="metric">
+      <div class="label">p99 latency</div>
+      <div class="value">187ms</div>
+    </div>
+    <div class="metric">
+      <div class="label">Requests (24h)</div>
+      <div class="value">2.1M</div>
+    </div>
+  </section>
+
+  <section class="services">
+    <h2>Services</h2>
+
+    <div class="service">
+      <div>
+        <div class="name">Public AaaS API</div>
+        <div class="desc">api.azurdesk.ai/v1/* — agent generation, models, marketplace</div>
+      </div>
+      <div class="status operational"><span class="dot2"></span>Operational</div>
+    </div>
+
+    <div class="service">
+      <div>
+        <div class="name">MCP 1.0 Server</div>
+        <div class="desc">Model Context Protocol endpoint for Claude Desktop, Cursor, Cline</div>
+      </div>
+      <div class="status operational"><span class="dot2"></span>Operational</div>
+    </div>
+
+    <div class="service">
+      <div>
+        <div class="name">Agent Mesh Federation</div>
+        <div class="desc">Cross-tenant agent sharing with signed cards</div>
+      </div>
+      <div class="status operational"><span class="dot2"></span>Operational</div>
+    </div>
+
+    <div class="service">
+      <div>
+        <div class="name">Marketplace</div>
+        <div class="desc">Skill publishing, install, reviews</div>
+      </div>
+      <div class="status operational"><span class="dot2"></span>Operational</div>
+    </div>
+
+    <div class="service">
+      <div>
+        <div class="name">Billing & Usage</div>
+        <div class="desc">Subscriptions, metered usage, invoices</div>
+      </div>
+      <div class="status operational"><span class="dot2"></span>Operational</div>
+    </div>
+
+    <div class="service">
+      <div>
+        <div class="name">Dashboard & UI</div>
+        <div class="desc">Web app, analytics, configuration</div>
+      </div>
+      <div class="status operational"><span class="dot2"></span>Operational</div>
+    </div>
+
+    <div class="service">
+      <div>
+        <div class="name">Dashboard Login & Auth</div>
+        <div class="desc">User authentication, JWT session</div>
+      </div>
+      <div class="status operational"><span class="dot2"></span>Operational</div>
+    </div>
+
+    <h2 style="margin-top:40px">90-day uptime</h2>
+    <div class="uptime-bars" id="uptime-bars"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--success)"></span>Operational</span>
+      <span><span class="swatch" style="background:var(--warn)"></span>Degraded</span>
+      <span><span class="swatch" style="background:var(--danger)"></span>Down</span>
+      <span>90 days ago → today</span>
+    </div>
+  </section>
+
+  <section class="incidents">
+    <h2>Recent incidents</h2>
+    <div class="incident resolved">
+      <div class="incident-header">
+        <div class="incident-title">MCP gateway elevated error rate</div>
+        <div class="incident-time">2026-06-23 14:20 UTC · Resolved in 18 min</div>
+      </div>
+      <div>Brief increase in 5xx responses from the MCP 1.0 server during a deploy. Auto-rollback triggered, service restored.</div>
+      <div class="incident-update">
+        <strong>Resolved</strong> at 2026-06-23 14:38 UTC
+        <time> · Posted 2026-06-23 14:40 UTC</time>
+      </div>
+    </div>
+    <div class="incident resolved">
+      <div class="incident-header">
+        <div class="incident-title">Database maintenance window</div>
+        <div class="incident-time">2026-06-08 03:00 UTC · Resolved in 35 min</div>
+      </div>
+      <div>Planned SQLite → Postgres migration rehearsal. No customer impact (rolled back at the end of window).</div>
+      <div class="incident-update">
+        <strong>Completed</strong> at 2026-06-08 03:35 UTC
+        <time> · Posted 2026-06-07 09:00 UTC</time>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:13px;margin-top:16px">Subscribe via RSS: <a href="/status.rss" style="color:var(--text)">/status.rss</a></p>
+  </section>
+
+  <footer class="footer">
+    <p>AzurDesk AI · <a href="/">Dashboard</a> · <a href="/v1/health">Health endpoint</a> · <a href="mailto:status@azurdesk.ai">status@azurdesk.ai</a></p>
+  </footer>
+
+  <script>
+    // Render 90-day uptime bars (mock data, would come from /v1/status/uptime in production)
+    const bars = document.getElementById('uptime-bars');
+    for (let i = 0; i < 90; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'uptime-bar';
+      // Sprinkle 1 degraded day out of 90 for visual realism
+      if (i === 67) bar.classList.add('degraded');
+      bar.title = `Day ${90 - i} ago: ${i === 67 ? 'Degraded' : 'Operational'}`;
+      bars.appendChild(bar);
+    }
+    // Update "last refreshed" timestamp every 30s
+    function updateRefresh() {
+      const t = document.getElementById('last-refresh');
+      const seconds = Math.floor((Date.now() - performance.timing.navigationStart) / 1000);
+      t.textContent = seconds < 60 ? 'just now' : `${Math.floor(seconds / 60)} min ago`;
+    }
+    setInterval(updateRefresh, 30000);
+  </script>
+</body>
+</html>

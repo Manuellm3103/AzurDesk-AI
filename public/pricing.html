@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AzurDesk AI AaaS — Pricing</title>
+<meta name="description" content="Agent-as-a-Service pricing for AzurDesk AI. Start free, scale to enterprise. 60 req/min, 1.5x cost markup, SOC 2 ready.">
+<style>
+  :root{--bg:#0a0e1a;--surface:#131829;--border:#1f2937;--text:#e5e7eb;--muted:#9ca3af;--accent:#06b6d4;--accent2:#8b5cf6;--success:#10b981;--warn:#f59e0b;--danger:#ef4444;--radius:12px;--font:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--mono:ui-monospace,'SF Mono','Cascadia Code',monospace}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .nav{max-width:1200px;margin:0 auto;padding:24px;display:flex;justify-content:space-between;align-items:center}
+  .logo{font-weight:700;font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .nav a{color:var(--muted);text-decoration:none;margin-left:24px;font-size:14px}
+  .nav a:hover{color:var(--text)}
+  .hero{max-width:1200px;margin:40px auto 20px;padding:0 24px;text-align:center}
+  .hero h1{font-size:48px;font-weight:800;margin-bottom:16px;background:linear-gradient(135deg,#fff 0%,#9ca3af 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+  .hero p{font-size:18px;color:var(--muted);max-width:640px;margin:0 auto}
+  .plans{max-width:1200px;margin:60px auto;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+  .plan{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;position:relative;transition:transform .2s,border-color .2s}
+  .plan:hover{transform:translateY(-4px);border-color:var(--accent)}
+  .plan.featured{border-color:var(--accent);background:linear-gradient(180deg,rgba(6,182,212,0.05) 0%,var(--surface) 100%)}
+  .plan.featured::before{content:'MOST POPULAR';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a0e1a;font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;letter-spacing:0.5px}
+  .plan h2{font-size:24px;margin-bottom:8px}
+  .plan .price{font-size:48px;font-weight:800;margin:16px 0 4px}
+  .plan .price small{font-size:14px;color:var(--muted);font-weight:400}
+  .plan .quota{color:var(--accent);font-family:var(--mono);font-size:14px;margin-bottom:24px}
+  .plan ul{list-style:none;margin-bottom:32px}
+  .plan li{padding:8px 0;color:var(--muted);font-size:14px;position:relative;padding-left:24px}
+  .plan li::before{content:'✓';position:absolute;left:0;color:var(--success);font-weight:700}
+  .cta{display:block;width:100%;padding:14px;border:none;border-radius:8px;background:var(--accent);color:#0a0e1a;font-weight:700;font-size:15px;cursor:pointer;text-align:center;text-decoration:none;transition:opacity .2s}
+  .cta:hover{opacity:0.9}
+  .cta.secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .compare{max-width:1200px;margin:80px auto;padding:0 24px}
+  .compare h2{text-align:center;margin-bottom:32px;font-size:32px}
+  table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:var(--radius);overflow:hidden}
+  th,td{padding:16px;text-align:left;border-bottom:1px solid var(--border);font-size:14px}
+  th{background:#0f1424;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:0.5px}
+  td:first-child{color:var(--muted)}
+  td:not(:first-child){text-align:center;font-family:var(--mono)}
+  .check{color:var(--success)}
+  .dash{color:var(--muted)}
+  .faq{max-width:800px;margin:80px auto;padding:0 24px}
+  .faq h2{text-align:center;margin-bottom:32px;font-size:32px}
+  .faq details{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:12px;cursor:pointer}
+  .faq summary{font-weight:600;font-size:16px;list-style:none}
+  .faq details[open] summary{margin-bottom:12px;color:var(--accent)}
+  .faq p{color:var(--muted);font-size:14px}
+  .footer{text-align:center;padding:60px 24px;color:var(--muted);font-size:13px;border-top:1px solid var(--border);margin-top:80px}
+  .footer a{color:var(--accent);text-decoration:none}
+  .code{font-family:var(--mono);background:#0f1424;padding:2px 6px;border-radius:4px;font-size:13px}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="logo">◆ AzurDesk AI</div>
+    <div>
+      <a href="https://azurdesk.ai">Dashboard</a>
+      <a href="/docs/API.md">API Docs</a>
+      <a href="/v1/openapi.json">OpenAPI</a>
+      <a href="https://github.com/azurdesk/azurdesk-ai">GitHub</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <h1>Agent-as-a-Service,<br>priced like cloud.</h1>
+    <p>Run LLM agents and discover marketplace skills via a single API. Start free, pay only for what you use, scale to enterprise with one click.</p>
+  </section>
+
+  <section class="plans" id="plans">
+    <div class="plan">
+      <h2>Free</h2>
+      <div class="price">$0<small>/mo</small></div>
+      <div class="quota">100,000 req/mo · 60 req/min</div>
+      <ul>
+        <li>All 11 API endpoints</li>
+        <li>Marketplace browsing & install</li>
+        <li>MCP 1.0 server</li>
+        <li>Community support</li>
+        <li>1.0× cost markup</li>
+      </ul>
+      <a href="https://azurdesk.ai/signup" class="cta secondary">Start free</a>
+    </div>
+
+    <div class="plan featured">
+      <h2>Pro</h2>
+      <div class="price">$99<small>/mo</small></div>
+      <div class="quota">1,000,000 req/mo · 600 req/min</div>
+      <ul>
+        <li>Everything in Free</li>
+        <li>10× higher rate limit</li>
+        <li>Email support (24h)</li>
+        <li>Slack alerts on quota</li>
+        <li>1.5× cost markup (margin)</li>
+        <li>Overage: $0.005 per 1k</li>
+      </ul>
+      <a href="https://azurdesk.ai/upgrade/pro" class="cta">Subscribe</a>
+    </div>
+
+    <div class="plan">
+      <h2>Enterprise</h2>
+      <div class="price">Custom</div>
+      <div class="quota">Unlimited · Custom rate limits</div>
+      <ul>
+        <li>Everything in Pro</li>
+        <li>SLA 99.9%</li>
+        <li>Dedicated CSM</li>
+        <li>SSO/SAML, on-prem option</li>
+        <li>SOC 2 Type II report</li>
+        <li>DPA + custom contract</li>
+      </ul>
+      <a href="mailto:api@azurdesk.ai" class="cta secondary">Contact sales</a>
+    </div>
+  </section>
+
+  <section class="compare">
+    <h2>Compare plans</h2>
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Free</th><th>Pro</th><th>Enterprise</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Monthly quota</td><td>100K</td><td>1M</td><td>Unlimited</td></tr>
+        <tr><td>Rate limit (req/min)</td><td>60</td><td>600</td><td>Custom</td></tr>
+        <tr><td>API endpoints</td><td class="check">All</td><td class="check">All</td><td class="check">All</td></tr>
+        <tr><td>Marketplace</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>MCP 1.0 server</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>Cost markup</td><td>1.0×</td><td>1.5×</td><td>Custom</td></tr>
+        <tr><td>Overage billing</td><td class="dash">—</td><td>per 1k</td><td>Custom</td></tr>
+        <tr><td>Support</td><td>Community</td><td>Email 24h</td><td>Dedicated CSM</td></tr>
+        <tr><td>SLA</td><td class="dash">—</td><td>99.5%</td><td>99.9%</td></tr>
+        <tr><td>SSO/SAML</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td>SOC 2 Type II</td><td class="dash">—</td><td>Self-attest</td><td>Audited</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="faq">
+    <h2>Frequently asked</h2>
+    <details>
+      <summary>How does the 1.5× cost markup work?</summary>
+      <p>We pass through the underlying LLM inference cost (OpenAI, Ollama, local) and add 50% margin. If OpenAI charges $1 for your usage, you pay $1.50. This covers infrastructure, support, and the marketplace you can sell your own agents in.</p>
+    </details>
+    <details>
+      <summary>What happens if I exceed my quota?</summary>
+      <p>On Pro and Enterprise, overage is billed at the per-1k rate in your plan. On Free, you get a 402 with an upgrade link. We never silently drop requests — every call gets an explicit response with quota headers <span class="code">X-Quota-Used</span> and <span class="code">X-Quota-Limit</span>.</p>
+    </details>
+    <details>
+      <summary>Can I bring my own LLM provider?</summary>
+      <p>Yes. <span class="code">POST /v1/aaas/providers</span> registers your OpenAI / Ollama / Azure OpenAI keys. The router auto-selects based on cost, latency, and capability. For Enterprise, we support on-prem and custom routing policies.</p>
+    </details>
+    <details>
+      <summary>How do I get an API key?</summary>
+      <p>Sign up at <a href="https://azurdesk.ai/signup" style="color:var(--accent)">azurdesk.ai/signup</a>, then <span class="code">POST /v1/api-keys</span> with a JWT session. The key is shown once. For automated provisioning of multiple keys, see the API docs.</p>
+    </details>
+    <details>
+      <summary>What's MCP and why does it matter?</summary>
+      <p>MCP (Model Context Protocol) is the open standard for connecting AI agents to tools and data sources. Our MCP 1.0 server lets Claude Desktop, Cursor, Cline, and any MCP-compatible client consume your AzurDesk agents natively. No glue code.</p>
+    </details>
+    <details>
+      <summary>Is there a free trial of Pro?</summary>
+      <p>Yes — every new account gets 30 days of Pro free. We don't ask for a card upfront. At the end of the trial, you fall back to Free automatically unless you add a payment method.</p>
+    </details>
+  </section>
+
+  <footer class="footer">
+    <p>AzurDesk AI AaaS · <a href="/v1/openapi.json">OpenAPI 3.1</a> · <a href="/docs/API.md">API docs</a> · <a href="https://github.com/azurdesk/azurdesk-ai">Source</a> · <a href="mailto:api@azurdesk.ai">api@azurdesk.ai</a></p>
+    <p style="margin-top:8px">© 2026 AzurDesk AI · SOC 2 Type II in progress · GDPR & CCPA compliant</p>
+  </footer>
+</body>
+</html>

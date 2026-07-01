@@ -1,303 +1,207 @@
-# AzurDesk AI — API Reference
+# AzurDesk AI AaaS — Public API v1
 
-Base URL: `http://localhost:5200/api` (o el host configurado).
-Auth: Bearer token vía `Authorization: Bearer <token>`.
+The AaaS (Agent-as-a-Service) API lets external developers run LLM-powered
+agents and discover marketplace skills without writing against the in-app
+AAAS router. Authenticate with an API key, get billed by request, and ship
+faster.
 
-## Auth
+**Base URL**: `https://api.azurdesk.ai/v1` (production) · `http://localhost:5200/v1` (local)
+**Auth**: `Authorization: Bearer azdk_xxx`
+**Rate limit**: 60 requests/minute per key
+**Quota**: 100,000 requests/month per key (Free tier)
 
-### POST /api/auth/login
-```json
-{ "email": "admin@azurdesk.ai", "password": "admin123" }
+---
+
+## 1. Get an API key
+
+First, log in to the AzurDesk dashboard and create a key. From a JWT session
+in the in-app UI:
+
+```bash
+curl -X POST http://localhost:5200/api/api-keys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"name":"my-app","scopes":["aaas:read","aaas:write"]}'
 ```
-Response: `{ success: true, token }`
 
-## Helpdesk / Tickets
-
-### POST /api/tickets
-Crea un ticket. El clasificador ML asigna prioridad, nivel y tags.
+Response:
 ```json
 {
-  "requester_email": "a@b.com",
-  "requester_name": "A",
-  "subject": "Problema de red",
-  "body": "La red principal está caída en la oficina CDMX"
+  "id": "apikey-1782912890765-ok4vka",
+  "name": "my-app",
+  "key": "azdk_a1b2c3d4...",
+  "key_prefix": "azdk_a1b2c3d4",
+  "scopes": ["aaas:read", "aaas:write"]
 }
 ```
 
-### GET /api/tickets
-Lista tickets del tenant. Query params: `status`, `priority`, `assignee_id`, `limit`, `offset`.
+> **Store the `key` value now** — it is shown only once. Subsequent `GET /v1/api-keys` returns
+> keys without the secret, only `key_prefix`.
 
-### GET /api/tickets/:id
-Detalle del ticket.
+---
 
-### POST /api/tickets/:id/escalate
-Escalado manual. Body: `{ level, reason }`.
+## 2. Quickstart — `curl`
 
-### POST /api/tickets/:id/move
-Mueve ticket entre estados Kanban. Body: `{ status }`.
+```bash
+export AZURDESK_KEY="azdk_a1b2c3d4..."
 
-### GET /api/helpdesk/metrics
-Métricas del helpdesk.
+# Health check (no auth required)
+curl https://api.azurdesk.ai/v1/health
 
-### GET /api/helpdesk/kanban
-Board Kanban con columnas de tickets.
+# List available models
+curl -H "Authorization: Bearer $AZURDESK_KEY" \
+  https://api.azurdesk.ai/v1/aaas/models
 
-## Agents
+# Generate a completion
+curl -X POST https://api.azurdesk.ai/v1/aaas/generate \
+  -H "Authorization: Bearer $AZURDESK_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Explain quantum computing in 2 sentences","max_tokens":256}'
 
-### GET /api/agents
-Lista agentes.
-
-### POST /api/agents
-Crea agente. Body: `{ name, role, level, skills }`.
-
-### GET /api/agents/health
-Health snapshot de la fleet.
-
-### GET /api/agents/metrics
-Métricas de agentes.
-
-### GET /api/agents/rebalance/recommend
-Recomendaciones de rebalanceo de carga.
-
-### POST /api/agents/rebalance
-Aplica rebalanceo recomendado.
-
-### GET /api/agents/rebalance/logs
-Historial de rebalances.
-
-## Automatón / Triggers
-
-### GET /api/automaton/rules
-Lista reglas.
-
-### POST /api/automaton/rules
-Crea regla. Body:
-```json
-{
-  "name": "Crítico → webhook",
-  "description": "...",
-  "condition": { "priority": "critica" },
-  "actions": [{ "type": "webhook", "params": { "url": "...", "message": "..." } }],
-  "priority": 10,
-  "enabled": true
-}
-```
-Tipos de acción: `webhook`, `email`, `escalate_level`, `create_incident`, `assign_to_agent`.
-
-### GET/PUT/DELETE /api/automaton/rules/:id
-CRUD de regla individual.
-
-### POST /api/automaton/rules/:id/run
-Ejecuta regla manualmente sobre el último ticket o uno dado.
-
-### GET /api/automaton/outbox
-Mensajes/envíos pendientes generados por reglas.
-
-## Agent Mesh Discovery
-
-### POST /api/mesh/nodes
-Publica o actualiza un nodo experto.
-```json
-{
-  "agent_id": "net-01",
-  "name": "Especialista Red",
-  "role": "specialist",
-  "level": 3,
-  "skills": ["network", "firewall"],
-  "endpoint": "http://..."
-}
+# Check quota usage
+curl -H "Authorization: Bearer $AZURDESK_KEY" \
+  https://api.azurdesk.ai/v1/aaas/usage
 ```
 
-### GET /api/mesh/nodes
-Lista nodos activos.
+---
 
-### POST /api/mesh/nodes/:id/heartbeat
-Heartbeat de salud. Body: `{ availability, reputation, metrics }`.
+## 3. Quickstart — Python SDK
 
-### DELETE /api/mesh/nodes/:id
-Desactiva nodo.
-
-### POST /api/mesh/rank
-Rankea nodos para un ticket. Body:
-```json
-{ "ticket": { "tags": ["network"], "level": 3 } }
+```bash
+pip install azurdesk
 ```
 
-### POST /api/mesh/assign
-Asigna ticket a nodo. Body: `{ ticket_id, node_id, reason, score }`.
+```python
+import asyncio
+from azurdesk import AzurDeskClient
 
-## Capacity Planner
+async def main():
+    async with AzurDeskClient(api_key="azdk_a1b2c3d4...") as client:
+        # Discover available models
+        models = await client.list_models()
+        print(f"{len(models)} models available")
 
-### GET /api/capacity/forecast?hours=4
-Forecast de capacidad. Response:
-```json
-{
-  "forecast": {
-    "incoming_rate": 2.5,
-    "projected_workload": 10,
-    "available_capacity": 8,
-    "utilization": 1.25,
-    "agents_needed": 1,
-    "risk": "high"
-  }
-}
+        # Generate a completion
+        result = await client.generate(
+            "Explain quantum computing in 2 sentences",
+            max_tokens=256,
+            temperature=0.7,
+        )
+        print(result.text)
+        print(f"  via {result.provider}/{result.model}")
+
+        # Check quota
+        usage = await client.usage()
+        print(f"Quota: {usage.used}/{usage.limit} this month")
+
+asyncio.run(main())
 ```
 
-## Legal Case Management
+Source: `azurdesk-ai-py/azurdesk/__init__.py` — 16 tests passing.
 
-### POST /api/legal/cases
-Crea caso legal. El servicio infiere risk score, prioridad, SLA y nivel de aprobación.
-```json
-{
-  "title": "Demanda laboral",
-  "summary": "Ex empleado demanda por despido injustificado",
-  "type": "litigation",
-  "requester_email": "rrhh@corp.com",
-  "requested_amount": 120000,
-  "opposing_party": "Juan Pérez",
-  "jurisdiction": "CDMX"
-}
-```
-Tipos: `contract`, `litigation`, `compliance`, `ip`, `employment`, `corporate`.
+---
 
-### GET /api/legal/cases
-Lista casos. Query params: `status`, `type`, `priority`, `owner_id`, `limit`, `offset`.
+## 4. Quickstart — JavaScript / TypeScript
 
-### GET /api/legal/cases/:id
-Detalle del caso incluyendo tareas, notas y documentos.
-
-### POST /api/legal/cases/:id/advance
-Avanza al siguiente estado legal.
-
-### POST /api/legal/cases/:id/approve
-Aprueba/rechaza caso. Body:
-```json
-{ "approver_id": "partner-uuid", "decision": "approved", "notes": "Aprobado para proceder" }
-```
-Requiere que el usuario tenga `level` ≥ `approval_level` del caso.
-
-### GET/POST /api/legal/cases/:id/tasks
-Gestión de tareas del caso.
-
-### GET/POST /api/legal/cases/:id/notes
-Notas del caso (internas/públicas).
-
-## AI / LLM
-
-### POST /api/ai/reply
-Genera respuesta sugerida para un ticket.
-
-### POST /api/ai/rag
-RAG sobre base de conocimiento.
-
-### GET /api/llm/models
-Modelos disponibles.
-
-### GET /api/llm/stats
-Estadísticas de uso.
-
-## Swarm Protocol
-
-### GET /api/swarm/status
-Estado del equipo.
-
-### POST /api/swarm/claim
-### POST /api/swarm/heartbeat
-### POST /api/swarm/complete
-### GET/POST /api/swarm/messages
-
-## Memory & KB
-
-### GET /api/memory/graph
-### POST /api/memory
-### POST /api/kb/graph
-### GET /api/kb/search
-
-## Ollama Cloud
-
-### POST /api/ollama-cloud/signin
-### GET /api/ollama-cloud/account
-### POST /api/ollama-cloud/check
-### GET /api/ollama-cloud/models
-### POST /api/ollama-cloud/generate
-
-## Sites / Web Builder
-
-### POST /api/sites
-### GET /api/sites/:id/export
-### POST /api/pages
-
-## Documents OCR
-
-### GET /api/documents
-### POST /api/documents (multipart)
-
-## Review / Orchestrator
-
-### POST /api/review
-### POST /api/orchestrator/runs
-### GET /api/orchestrator/runs/:id
-
-## AAAS — LLM Router
-
-### POST /api/aaas/providers
-Configura cuenta de proveedor LLM.
-```json
-{
-  "name": "Ollama Cloud",
-  "kind": "ollama_cloud",
-  "base_url": "https://ollama-cloud.example.com",
-  "api_key": "[REDACTED]",
-  "models": [{ "id": "ministral-3:8b-cloud", "quality": 0.75, "cost_per_1m": 0, "latency_ms": 1200, "complexity": ["low","medium"] }]
-}
+```bash
+npm install @azurdesk/sdk  # coming soon
 ```
 
-### GET /api/aaas/providers
-Lista proveedores del tenant (sin exponer API keys).
+For now, use raw `fetch`:
 
-### PUT /api/aaas/providers/:id
-Actualiza proveedor.
+```javascript
+const AZURDESK_KEY = "azdk_a1b2c3d4...";
 
-### DELETE /api/aaas/providers/:id
-Elimina proveedor.
+const response = await fetch("https://api.azurdesk.ai/v1/aaas/generate", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${AZURDESK_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    prompt: "Explain quantum computing in 2 sentences",
+    max_tokens: 256,
+  }),
+});
 
-### GET /api/aaas/models
-Modelos disponibles para el tenant.
-
-### POST /api/aaas/generate
-Generación via router.
-```json
-{
-  "prompt": "Resume el SLA de red",
-  "strategy": "balanced",
-  "preferred": "Ollama Cloud",
-  "maxCostPer1M": 1.0
-}
+const data = await response.json();
+console.log(data.text);
 ```
 
-### GET /api/aaas/usage
-Estadísticas de uso y costos por proveedor.
+---
 
-## Marketing AI Agents
+## 5. Endpoints
 
-### POST /api/marketing/agents/run
-Ejecuta agente. `kind`: content, webpage, design, trending, lead.
+| Method | Path | Description |
+|---|---|---|
+| GET | `/v1/health` | Liveness (no auth) |
+| GET | `/v1/aaas/models` | List available models for the tenant |
+| POST | `/v1/aaas/generate` | Generate an LLM completion |
+| GET | `/v1/aaas/usage` | Quota usage for the current key |
+| GET | `/v1/aaas/providers` | LLM providers configured for the tenant |
+| GET | `/v1/api-keys` | List API keys for the tenant |
+| POST | `/v1/api-keys` | Create a new API key |
+| DELETE | `/v1/api-keys/{id}` | Revoke an API key |
+| GET | `/v1/marketplace` | Browse the skill marketplace |
+| GET | `/v1/marketplace/installed` | List installed skills |
+| GET | `/v1/openapi.json` | OpenAPI 3.1 spec for the public API |
+
+The full OpenAPI 3.1 spec is served at `/v1/openapi.json` — pipe it through
+`openapi-generator-cli` to produce clients in any language.
+
+---
+
+## 6. Error codes
+
+| HTTP | Code | Meaning | Action |
+|---|---|---|---|
+| 401 | `missing_api_key` | No Bearer token | Set `Authorization: Bearer ...` |
+| 401 | `invalid_api_key` | Key is wrong or revoked | Create a new key with `POST /v1/api-keys` |
+| 402 | `quota_exceeded` | Monthly quota consumed | Upgrade plan or wait for next month |
+| 429 | `rate_limited` | 60 req/min exceeded | Wait `Retry-After` seconds, then retry |
+| 500 | `internal_error` | Server-side failure | Retry with exponential backoff (SDK does this automatically) |
+
+All errors return:
 ```json
-{
-  "kind": "content",
-  "ctx": { "brand": "AzurDesk", "topic": "AI para helpdesk", "audience": "CTOs", "channels": ["linkedin","blog"] }
-}
+{ "error": "invalid_api_key", "message": "API key is invalid or revoked" }
 ```
 
-### GET /api/marketing/assets
-### GET /api/marketing/assets/:id
-### PATCH /api/marketing/assets/:id
+---
 
-### POST /api/marketing/campaigns
-### GET /api/marketing/campaigns
-### POST /api/marketing/campaigns/:id/attach
-### POST /api/marketing/campaigns/:id/leads
+## 7. Response headers
 
-## Obsidian
+Every `/v1/*` response includes:
 
-### GET /api/obsidian/notes
+| Header | Description |
+|---|---|
+| `X-RateLimit-Limit` | Requests allowed per minute (60) |
+| `X-RateLimit-Remaining` | Requests left in the current minute window |
+| `X-Quota-Used` | Requests consumed this billing period |
+| `X-Quota-Limit` | Monthly quota (100,000 for Free) |
+| `X-API-Key-Prefix` | First 12 characters of the key that made the request |
+
+Use these to build client-side rate limiters and quota dashboards.
+
+---
+
+## 8. Pricing
+
+| Plan | Price | Quota | Rate limit | Support |
+|---|---|---|---|---|
+| **Free** | $0/mo | 100,000 req | 60 req/min | Community |
+| **Pro** | $99/mo | 1,000,000 req | 600 req/min | Email, 24h |
+| **Enterprise** | Custom | Unlimited | Custom | SLA, dedicated CSM |
+
+Every Pro plan includes 1.5× margin on inference cost vs raw OpenAI. Charge
+your customers per-request and pay only what you use.
+
+---
+
+## 9. What's next
+
+- **Stripe billing** (Sprint 4) — self-service plan upgrades, metered usage
+- **OpenAPI Generator** — `openapi-generator-cli generate -i /v1/openapi.json -g go -o ./sdk`
+- **Status page** — `status.azurdesk.ai` (Better Stack)
+- **SOC 2 Type II** — Q3 2026 audit via Drata
+
+For enterprise plans, contact api@azurdesk.ai.
