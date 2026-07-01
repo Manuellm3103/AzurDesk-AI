@@ -168,7 +168,17 @@ const RENDERERS = {
   skills: () => renderSkills,
   docs: () => renderDocs,
   'agent-tracing': () => renderAgentTracing,
-  'llm-cache': () => renderLLMCache
+  'llm-cache': () => renderLLMCache,
+  // ===== Consolidated compound views (v2.6.13 sidebar refactor) =====
+  'operaciones-ai': () => renderOperacionesAI,    // sub: Automata / Radar / Capacity
+  'agent-ops': () => renderAgentOps,              // sub: DAG / A2A / Browser
+  'ai-memory': () => renderAIMemory,              // sub: Embeddings / ML / Notes / Lab
+  'tracing': () => renderTracingSuite,            // sub: OTel / Spans / Agent
+  'durable-execution': () => renderDurableExecution, // sub: Handoffs / Workflows / Runs
+  'resilience': () => renderResilience,           // sub: Alerts / Remediation / Prediction
+  'mcp': () => renderMCP,                         // sub: Tools / Gateway / Server
+  'llm-providers': () => renderLLMProviders,      // sub: Local / Cloud
+  'documentos': () => renderDocumentos            // sub: OCR / Skills
 };
 
 // NOTE: 'const views' is declared in cua.js, skills.js, and documents.js as a
@@ -176,6 +186,160 @@ const RENDERERS = {
 // renderDocs/renderSkills/renderCUA consume the registry provided by those
 // sibling scripts. Re-declaring causes a SyntaxError at script load and
 // blocks the whole UI from booting.
+
+// =============================================================================
+// Consolidated compound views (v2.6.13 sidebar refactor).
+// Each compound view embeds a Bootstrap sub-tab strip inside the main panel,
+// reuses the existing single-purpose renderers (defined further down) and
+// their corresponding fetch handlers, and keeps the sidebar compact.
+// Pattern: a shared helper `renderCompoundView(el, opts)` paints the chrome,
+// then the active sub-tab renderer is invoked. The sub-tab strip uses
+// Bootstrap's nav-tabs markup so it matches the design system.
+// =============================================================================
+
+function renderCompoundView(el, opts) {
+  // opts: { id, title, subtabs: [{id, label, render}], initial }
+  const initial = opts.initial || opts.subtabs[0].id;
+  el.innerHTML = `
+    <h2>${opts.title}</h2>
+    <ul class="nav nav-tabs mb-3" role="tablist" id="${opts.id}-tabs">
+      ${opts.subtabs.map((s) => `
+        <li class="nav-item" role="presentation">
+          <button class="nav-link ${s.id === initial ? 'active' : ''}"
+                  data-subtab="${s.id}" type="button" role="tab"
+                  aria-selected="${s.id === initial}">${s.label}</button>
+        </li>`).join('')}
+    </ul>
+    <div id="${opts.id}-content" class="compound-content"></div>`;
+  const content = document.getElementById(opts.id + '-content');
+  const tabBar = document.getElementById(opts.id + '-tabs');
+  // The previous tabBar (and its click listener) was destroyed when we
+  // rewrote el.innerHTML, so no listener accumulation can occur across
+  // re-mounts of the same compound view. We just bind a fresh handler.
+  function activate(id) {
+    tabBar.querySelectorAll('button.nav-link').forEach((b) => {
+      const on = b.dataset.subtab === id;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on);
+    });
+    const sub = opts.subtabs.find((s) => s.id === id) || opts.subtabs[0];
+    content.innerHTML = '';
+    if (typeof sub.render === 'function') sub.render(content);
+  }
+  const handler = (ev) => {
+    const btn = ev.target.closest('button.nav-link');
+    if (btn && btn.dataset.subtab) activate(btn.dataset.subtab);
+  };
+  tabBar.addEventListener('click', handler);
+  activate(initial);
+}
+
+async function renderOperacionesAI(el) {
+  renderCompoundView(el, {
+    id: 'opai',
+    title: '⚙️ Operaciones AI',
+    subtabs: [
+      { id: 'automaton', label: '🤖 Automata', render: renderAutomaton },
+      { id: 'radar',     label: '🚨 Radar',     render: renderRadar },
+      { id: 'capacity',  label: '📈 Capacity',  render: renderCapacity }
+    ]
+  });
+}
+
+async function renderAgentOps(el) {
+  renderCompoundView(el, {
+    id: 'agentops',
+    title: '🛠️ Agent Ops',
+    subtabs: [
+      { id: 'dag',     label: '🕸️ DAG',         render: renderAgentDAG },
+      { id: 'a2a',     label: '📇 A2A Tasks',    render: renderA2AStandard },
+      { id: 'browser', label: '🌐 Browser',      render: renderBrowserAgent }
+    ]
+  });
+}
+
+async function renderAIMemory(el) {
+  renderCompoundView(el, {
+    id: 'aimemory',
+    title: '🧠 AI Memory & Models',
+    subtabs: [
+      { id: 'embeddings', label: '🔢 Embeddings',  render: renderEmbeddings },
+      { id: 'ml',         label: '🧪 ML Tickets',  render: renderMLTickets },
+      { id: 'notes',      label: '📝 AI Notes',    render: renderNotes },
+      { id: 'lab',        label: '🤖 AI Lab',      render: renderAI }
+    ]
+  });
+}
+
+async function renderTracingSuite(el) {
+  renderCompoundView(el, {
+    id: 'tracesuite',
+    title: '🔍 Tracing',
+    subtabs: [
+      { id: 'otel',   label: '📡 OTel + Self-Heal', render: renderOTel },
+      { id: 'spans',  label: '🔍 Tracing',           render: renderTracing },
+      { id: 'agent',  label: '📊 Agent Tracing',     render: renderAgentTracing }
+    ]
+  });
+}
+
+async function renderDurableExecution(el) {
+  renderCompoundView(el, {
+    id: 'durable',
+    title: '🛡️ Durable Execution',
+    subtabs: [
+      { id: 'handoffs',   label: '🔄 Handoffs',            render: renderHandoffs },
+      { id: 'workflows',  label: '⚙️ Conductor Workflows', render: renderConductorWorkflows },
+      { id: 'executions', label: '🛡️ Durable Runs',        render: renderDurableExecutions }
+    ]
+  });
+}
+
+async function renderResilience(el) {
+  renderCompoundView(el, {
+    id: 'resilience',
+    title: '🛡️ Resilience',
+    subtabs: [
+      { id: 'alerts',     label: '🚨 Causal Alerts',      render: renderCausalAlerts },
+      { id: 'remediation',label: '🩹 Remediation DSL',    render: renderRemediation },
+      { id: 'predict',    label: '🔮 Failure Prediction', render: renderFailurePrediction }
+    ]
+  });
+}
+
+async function renderMCP(el) {
+  renderCompoundView(el, {
+    id: 'mcp',
+    title: '🔌 MCP — Model Context Protocol',
+    subtabs: [
+      { id: 'tools',   label: '🧰 MCP Tools',       render: renderMCPTools },
+      { id: 'gateway', label: '🌐 MCP Gateway',     render: renderMCPGateway },
+      { id: 'server',  label: '🖥️ MCP Server 1.0', render: renderMCPServer }
+    ]
+  });
+}
+
+async function renderLLMProviders(el) {
+  renderCompoundView(el, {
+    id: 'llmprov',
+    title: '🤖 LLM Providers',
+    subtabs: [
+      { id: 'local', label: '🖥️ Local LLM',    render: renderLocalLLM },
+      { id: 'cloud', label: '☁️ Ollama Cloud', render: renderOllamaCloud }
+    ]
+  });
+}
+
+async function renderDocumentos(el) {
+  renderCompoundView(el, {
+    id: 'docs',
+    title: '📄 Documentos',
+    subtabs: [
+      { id: 'ocr',    label: '📑 Documentos OCR',       render: renderDocs },
+      { id: 'skills', label: '🧠 Simplicio + Obsidian', render: renderSkills }
+    ]
+  });
+}
 
 async function renderDocs(el) {
   el.innerHTML = (window.AzurViews && window.AzurViews.docs) || '<h2>Documentos</h2><div class="card">Vista no disponible</div>';
