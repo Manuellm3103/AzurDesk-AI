@@ -212,8 +212,6 @@ const server = createServer(async (req, res) => {
     }
   }
 
-  const body = ['POST', 'PUT'].includes(req.method) ? await readBody(req) : {};
-
   try {
     if (pathname === '/api/health') {
       return json(res, {
@@ -252,6 +250,18 @@ const server = createServer(async (req, res) => {
     // Public plans endpoint
     if (pathname === '/api/plans' && req.method === 'GET') {
       return json(res, { success: true, plans: tenantService.getPlans() });
+    }
+
+    // Public AaaS v1 API — uses API key auth (not JWT) for external developers.
+    // Bypass the JWT requireAuth below; routeV1 does its own API key validation.
+    if (pathname.startsWith('/v1/')) {
+      // OpenAPI spec — public, no auth (used by SDK generators and humans)
+      if (pathname === '/v1/openapi.json' && req.method === 'GET') {
+        const { buildV1OpenApiSpec } = await import('./src/services/openApiV1Service.js');
+        return json(res, buildV1OpenApiSpec());
+      }
+      const { routeV1 } = await import('./src/services/publicV1Router.js');
+      return await routeV1(req, res, pathname);
     }
 
     // Auth required from here
@@ -506,6 +516,14 @@ const server = createServer(async (req, res) => {
       const t = new Date().toISOString();
       db.prepare('INSERT INTO kb_articles (id, tenant_id, title, content, category, tags, embedding, views, helpful, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
         .run(id, user.tenant_id, title || '', content || '', category || '', JSON.stringify(tags || []), '{}', 0, 0, t, t);
+      // v2.6.14: auto-sync to embeddings vector store (incremental ingest)
+      try {
+        embeddingService.upsert(user.tenant_id, {
+          source: 'kb_article',
+          sourceId: id,
+          text: `${title || ''}\n\n${content || ''}`.trim()
+        });
+      } catch (e) { /* non-blocking */ }
       return json(res, { success: true, article: { id, tenant_id: user.tenant_id, title, content, category, tags: tags || [] } });
     }
 
