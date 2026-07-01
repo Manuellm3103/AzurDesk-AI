@@ -1,0 +1,27 @@
+{
+  "name": "@azurdesk/sdk",
+  "version": "1.0.0",
+  "description": "AzurDesk AI AaaS TypeScript SDK (Node 18+, zero dependencies)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/tests/*.test.js",
+    "clean": "rm -rf dist"
+  },
+  "engines": { "node": ">=18" },
+  "keywords": ["azurdesk", "aaas", "agent-as-a-service", "llm", "ai", "sdk"],
+  "license": "Commercial",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

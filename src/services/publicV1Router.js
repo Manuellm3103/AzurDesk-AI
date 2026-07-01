@@ -50,11 +50,25 @@ async function handleHealth(req, res) {
   json(res, { ...await publicHealth(), api_version: 'v1' });
 }
 
-// /v1/aaas/generate
+// /v1/aaas/generate — meter real tokens/cost
 const handleGenerate = wrapAsV1Endpoint(async (ctx, req) => {
   const body = await readJson(req);
+  const startMs = Date.now();
   const result = await aaasRouterService.generate(ctx.tenantId, body || {}, { fallback: body?.fallback !== false });
-  return { body: result };
+  const latencyMs = Date.now() - startMs;
+  // Real metering: charge the tenant for what they actually used
+  if (result?.success) {
+    const tokensIn = result.usage?.prompt_tokens ?? result.usage?.input_tokens ?? 0;
+    const tokensOut = result.usage?.completion_tokens ?? result.usage?.output_tokens ?? 0;
+    const costUsd = result.usage?.cost_usd ?? 0;
+    recordBillingUsage({
+      tenantId: ctx.tenantId,
+      apiKeyId: ctx.apiKeyId,
+      endpoint: '/v1/aaas/generate',
+      tokensIn, tokensOut, costUsd
+    });
+  }
+  return { body: { ...(result || {}), latency_ms: latencyMs } };
 });
 
 // /v1/aaas/models
