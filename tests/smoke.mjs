@@ -285,6 +285,13 @@ async function main() {
   const streamLines = streamRes.body.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
   add('GET /api/a2a/stream (NDJSON)', streamRes.status === 200 && streamLines.length >= 3 && streamLines[0].event === 'open');
 
+  // v2.6.13 — Hybrid RAG with HNSW auto-select
+  // First ingest some embeddings so the HNSW path can be exercised
+  await request('POST', '/api/embeddings', { source: 'kb', source_id: 'rag-sm-1', text: 'SLA tickets 4 hours' }, token);
+  await request('POST', '/api/embeddings', { source: 'kb', source_id: 'rag-sm-2', text: 'database connection timeout' }, token);
+  const ragResp = await request('POST', '/api/ai/rag', { query: '¿Cuál es el SLA de los tickets?' }, token);
+  add('POST /api/ai/rag with hnsw source', ragResp.status === 200 && Array.isArray(ragResp.body.hnswResults) && ragResp.body.embeddingStats && ragResp.body.hnswAlgo);
+
   // v2.6.12 — Embeddings + HNSW
   await request('POST', '/api/embeddings', { source: 'kb', source_id: 'sm-1', text: 'SLA 4 horas' }, token);
   await request('POST', '/api/embeddings', { source: 'kb', source_id: 'sm-2', text: 'password reset instrucciones' }, token);

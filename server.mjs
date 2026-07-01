@@ -219,7 +219,7 @@ const server = createServer(async (req, res) => {
       return json(res, {
         success: true,
         name: 'AzurDesk AI',
-        version: '2.6.12',
+        version: '2.6.13',
         status: 'operational',
         environment: NODE_ENV,
         checks: {
@@ -559,16 +559,26 @@ const server = createServer(async (req, res) => {
     if (pathname === '/api/ai/rag' && req.method === 'POST') {
       const { query, mode = 'hybrid' } = body || {};
       if (!query) return json(res, { success: false, error: 'query requerida' }, 400);
-      const [graphResults, semanticResults, memories] = await Promise.all([
+      // v2.6.13: HNSW source auto-select (HNSW if corpus > 50, exact kNN otherwise)
+      const embStats = embeddingService.stats(user.tenant_id);
+      const useHnsw = embStats.total > 50;
+      const [graphResults, semanticResults, memories, hnswResults] = await Promise.all([
         Promise.resolve(graphRAG.search({ tenant_id: user.tenant_id, query })),
         Promise.resolve(findSimilarArticles(user.tenant_id, query)),
-        Promise.resolve(memoryService.recall({ tenant_id: user.tenant_id, user_id: user.id, session_id: body.session_id || 'web', query }))
+        Promise.resolve(memoryService.recall({ tenant_id: user.tenant_id, user_id: user.id, session_id: body.session_id || 'web', query })),
+        Promise.resolve(useHnsw
+          ? embeddingService.hnswSearch(user.tenant_id, { query, k: 5, ef: 50 })
+          : embeddingService.search(user.tenant_id, { query, k: 5 }))
       ]);
-      const context = [...graphResults.map((g) => g.matched.join(', ')), ...semanticResults.map((a) => a.title)];
+      const context = [
+        ...graphResults.map((g) => g.matched.join(', ')),
+        ...semanticResults.map((a) => a.title),
+        ...hnswResults.map((h) => h.text || h.id)
+      ];
       const prompt = `Contexto: ${context.slice(0, 5).join('; ')}\nPregunta: ${query}\nResponde en español.`;
       const complexity = classifyComplexity(prompt);
       const llm = await llmGenerate(prompt, { complexity, preferred: body.preferred, tenant_id: user.tenant_id });
-      return json(res, { success: true, query, mode, graphResults, semanticResults, memories, llm });
+      return json(res, { success: true, query, mode, graphResults, semanticResults, memories, hnswResults, hnswAlgo: useHnsw ? 'hnsw' : 'exact', embeddingStats: { total: embStats.total, algo: useHnsw ? 'hnsw' : 'exact' }, llm });
     }
 
     // Memory + Graph
@@ -2074,5 +2084,5 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-server.listen(PORT, () => console.log(`AzurDesk AI v2.6.12 running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`AzurDesk AI v2.6.13 running on http://localhost:${PORT}`));
 export { db, chat, telemetry };

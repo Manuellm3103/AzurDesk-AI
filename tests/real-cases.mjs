@@ -99,7 +99,9 @@ const CASES = [
   // v2.6.12 — Embeddings
   { method: 'GET', path: '/api/embeddings/stats', name: 'Embeddings: stats' },
   { method: 'POST', path: '/api/embeddings', name: 'Embeddings: upsert', body: { source: 'kb', source_id: 'real-1', text: 'real case test' } },
-  { method: 'POST', path: '/api/embeddings/search', name: 'Embeddings: search', body: { query: 'real case test', k: 3 } }
+  { method: 'POST', path: '/api/embeddings/search', name: 'Embeddings: search', body: { query: 'real case test', k: 3 } },
+  // v2.6.13 — Hybrid RAG with HNSW
+  { method: 'POST', path: '/api/ai/rag', name: 'Hybrid RAG (4 sources incl. HNSW)', body: { query: 'real case' } }
 ];
 
 async function main() {

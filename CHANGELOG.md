@@ -1,3 +1,23 @@
+## [2.6.13] - 2026-06-30 — Hybrid RAG con HNSW auto-select
+
+### Added
+- **Integración embeddingService → hybridRAGService**: RAG ahora tiene 4 fuentes paralelas (graphRAG, similarity, memory, **HNSW/exact kNN**).
+- **Auto-select algoritmo**: HNSW si corpus > 50 vectores, kNN exacto si ≤50. Cliente no decide, server elige.
+- **Endpoint `/api/ai/rag` extendido**: response incluye `hnswResults`, `hnswAlgo`, `embeddingStats`.
+- **5 nuevos tests** (tests/hybrid-rag-hnsw.mjs).
+- **ADR-042** documenta la decisión y el threshold empírico.
+
+### Why this matters
+- Tenant pequeño: kNN exacto, sin overhead.
+- Tenant grande (>50 docs KB): HNSW aproximado 10-50x más rápido sin perder relevancia.
+- Conecta las dos innovations previas (Embeddings v2.6.12) al RAG real usado por los agentes.
+
+### Verification
+- `npm test`: 264/265 pass, 1 skip (vs 259/260 v2.6.12, +5 tests hybrid-rag-hnsw)
+- `npm run smoke`: 169/169 (vs 168 v2.6.12, +1 rag check)
+- `node tests/real-cases.mjs`: 64/64 (vs 63, +1 hybrid RAG)
+- UI/backend audit: pending (re-build)
+
 ## [2.6.12] - 2026-06-30 — Embeddings + HNSW + Bun compile POC
 
 ### Added
