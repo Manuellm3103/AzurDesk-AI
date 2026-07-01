@@ -8,8 +8,8 @@ async function api(method, path, body) {
   return r.json().catch(() => ({}));
 }
 
-const views = {
-  skills: `
+window.AzurViews = window.AzurViews || {};
+window.AzurViews.skills = `
     <h2>Simplicio-Loop Orchestrator</h2>
     <div class="card">
       <input id="orch-goal" type="text" placeholder="Meta: integrar pagos Stripe" style="width:60%" />
@@ -28,8 +28,7 @@ const views = {
     <textarea id="obs-content" rows="4" placeholder="Contenido markdown..."># soporte\ncontactar a TI #urgente</textarea>
     <button onclick="writeObsidian()">Guardar nota</button>
     <button class="secondary" onclick="syncObsidian()">Sync → KB</button>
-    <ul id="obs-notes"></ul>`
-};
+    <ul id="obs-notes"></ul>`;
 
 async function startOrch() {
   const goal = document.getElementById('orch-goal').value;

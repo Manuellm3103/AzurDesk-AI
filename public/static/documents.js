@@ -1,5 +1,5 @@
-const views = {
-  docs: `
+window.AzurViews = window.AzurViews || {};
+window.AzurViews.docs = `
     <h2>Documentos OCR</h2>
     <div class="card">
       <h3>Subir archivo</h3>
@@ -17,8 +17,7 @@ const views = {
     <div class="card">
       <h3>Documentos procesados</h3>
       <ul id="doc-list"></ul>
-    </div>`
-};
+    </div>`;
 
 async function uploadDoc() {
   const fileInput = document.getElementById('doc-file');

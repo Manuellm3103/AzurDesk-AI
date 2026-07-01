@@ -95,8 +95,8 @@ function parseCoordinate(s) {
   return null;
 }
 
-const views = {
-  cua: `<h1>Computer Use (CUA)</h1><p>Controla el escritorio remoto desde el navegador. Modo background — no roba el foco del usuario.</p>
+window.AzurViews = window.AzurViews || {};
+window.AzurViews.cua = `<h1>Computer Use (CUA)</h1><p>Controla el escritorio remoto desde el navegador. Modo background — no roba el foco del usuario.</p>
     <div class="toolbar">
       <input type="text" id="cua-app" placeholder="App (opcional, ej: Chrome)" />
       <select id="cua-mode"><option value="vision">Screenshot</option><option value="som">SOM con overlays</option></select>
@@ -116,8 +116,7 @@ const views = {
         <div class="btn-row"><button onclick="cuaScroll('up')">⬆️ Up</button><button onclick="cuaScroll('down')">⬇️ Down</button></div>
         <pre id="cua-result"></pre>
       </div>
-    </div>`
-};
+    </div>`;
 
 if (typeof window !== 'undefined') {
   window.cuaCapture = cuaCapture;

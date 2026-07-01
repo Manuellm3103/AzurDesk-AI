@@ -97,7 +97,14 @@ function handleGlobalSearch(e) {
   e.target.value = '';
 }
 
-if (token) show('dashboard');
+// Dashboard auto-render is deferred to a setTimeout so that RENDERERS (which
+// is declared further down in this file) is fully initialized. Without this
+// deferral, the const RENDERERS would be in the temporal dead zone when
+// show('dashboard') runs at module top-level, causing a ReferenceError that
+// prevents the entire UI from booting.
+if (token) {
+  setTimeout(() => { if (typeof RENDERERS !== 'undefined') show('dashboard'); }, 0);
+}
 document.addEventListener('DOMContentLoaded', () => {
   const search = document.getElementById('global-search');
   if (search) search.addEventListener('keydown', handleGlobalSearch);
@@ -137,7 +144,7 @@ const RENDERERS = {
   'a2a-standard': () => renderA2AStandard,
   'agent-dag': () => renderAgentDAG,
   'agentic-rag': () => renderAgenticRAG,
-  'embeddings': () => renderEmbeddings,
+  embeddings: () => renderEmbeddings,
   'browser-agent': () => renderBrowserAgent,
   'mcp-registry': () => renderMCPRegistry,
   'mcp-tools': () => renderMCPTools,
@@ -164,19 +171,25 @@ const RENDERERS = {
   'llm-cache': () => renderLLMCache
 };
 
+// NOTE: 'const views' is declared in cua.js, skills.js, and documents.js as a
+// shared global registry. Do NOT re-declare it here — app.js's
+// renderDocs/renderSkills/renderCUA consume the registry provided by those
+// sibling scripts. Re-declaring causes a SyntaxError at script load and
+// blocks the whole UI from booting.
+
 async function renderDocs(el) {
-  el.innerHTML = views.docs;
+  el.innerHTML = (window.AzurViews && window.AzurViews.docs) || '<h2>Documentos</h2><div class="card">Vista no disponible</div>';
   loadDocs();
 }
 
 async function renderSkills(el) {
-  el.innerHTML = views.skills;
+  el.innerHTML = (window.AzurViews && window.AzurViews.skills) || '<h2>Skills</h2><div class="card">Vista no disponible</div>';
   loadRuns();
   loadObsidian();
 }
 
 async function renderCUA(el) {
-  el.innerHTML = views.cua;
+  el.innerHTML = (window.AzurViews && window.AzurViews.cua) || '<h1>CUA</h1><div class="card">Vista no disponible</div>';
 }
 
 async function renderDashboard(el) {
@@ -249,51 +262,440 @@ async function renderKanban(el) {
   el.innerHTML = html;
 }
 
+// =============================================================================
+// Rebalance AI — refactorizado contra el contrato del backend (server.mjs
+// L738-754) y conectado a la capa de servicios rebalance.service.js.
+// - Estado reactivo centralizado en window.rebalanceState.
+// - Spinners/Skeletons reales (sin setTimeout, sin datos mockeados).
+// - Botones bloqueados durante el ciclo de petición (Idle->Loading->Success/Error).
+// - Render dinámico: badges de burnout_risk, filtros visuales, sin <pre> con JSON.
+// - Auto-load del historial en mount para acelerar la auditoría.
+// =============================================================================
+
+const REBALANCE_RISK_LEVELS = ['critical', 'high', 'medium', 'low'];
+const REBALANCE_RISK_BADGES = {
+  critical: 'badge bg-danger',
+  high: 'badge bg-warning text-dark',
+  medium: 'badge bg-info text-dark',
+  low: 'badge bg-success',
+};
+const REBALANCE_RISK_LABELS = {
+  critical: 'Crítico',
+  high: 'Alto',
+  medium: 'Medio',
+  low: 'Bajo',
+};
+
+const rebalanceState = {
+  healthLoading: false,
+  recsLoading: false,
+  applyLoading: false,
+  logsLoading: false,
+  filter: 'all', // 'all' | 'critical' | 'high' | 'medium' | 'low'
+  snapshots: [],
+  moves: [],
+  applied: null,
+  logs: [],
+  lastError: null,
+};
+
+function rebalanceSpinnerHTML() {
+  return '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>';
+}
+
+function rebalanceSkeletonRowHTML(width) {
+  return (
+    '<div class="placeholder-glow my-1">' +
+      '<span class="placeholder col-' + (width || 6) + '"></span>' +
+    '</div>'
+  );
+}
+
+function rebalanceSkeletonListHTML(rows) {
+  const n = rows || 4;
+  let out = '<div class="card-body"><strong>Cargando…</strong>';
+  for (let i = 0; i < n; i++) out += rebalanceSkeletonRowHTML(8);
+  out += '</div>';
+  return out;
+}
+
+function rebalanceEscape(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function rebalanceFormatDate(iso) {
+  if (!iso) return '—';
+  // El backend entrega timestamps ISO 8601 en UTC; se renderiza en local.
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return rebalanceEscape(iso);
+  return d.toLocaleString();
+}
+
+function rebalanceSetButtonsDisabled(disabled) {
+  const ids = ['btn-health', 'btn-recs', 'btn-apply', 'btn-logs'];
+  for (let i = 0; i < ids.length; i++) {
+    const b = document.getElementById(ids[i]);
+    if (b) b.disabled = disabled;
+  }
+}
+
+function rebalanceSetButtonLoading(btnId, isLoading, idleLabel, busyLabel) {
+  const b = document.getElementById(btnId);
+  if (!b) return;
+  b.disabled = !!isLoading;
+  b.innerHTML = isLoading
+    ? (rebalanceSpinnerHTML() + (busyLabel || 'Procesando…'))
+    : (idleLabel || b.dataset.idleLabel || '');
+}
+
+function rebalanceRenderFilterBar() {
+  const counts = { all: rebalanceState.snapshots.length, critical: 0, high: 0, medium: 0, low: 0 };
+  for (let i = 0; i < rebalanceState.snapshots.length; i++) {
+    const r = rebalanceState.snapshots[i].burnout_risk;
+    if (counts[r] !== undefined) counts[r]++;
+  }
+  let html = '<div class="btn-group btn-group-sm mb-2" role="group" aria-label="Filtro burnout">';
+  const items = [
+    { key: 'all', label: 'Todos' },
+    { key: 'critical', label: 'Críticos' },
+    { key: 'high', label: 'Altos' },
+    { key: 'medium', label: 'Medios' },
+    { key: 'low', label: 'Bajos' },
+  ];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const active = rebalanceState.filter === it.key;
+    html +=
+      '<button type="button" class="btn btn-outline-secondary ' + (active ? 'active' : '') + '"' +
+      ' data-filter="' + rebalanceEscape(it.key) + '" onclick="rebalanceApplyFilter(\'' + rebalanceEscape(it.key) + '\')">' +
+      rebalanceEscape(it.label) + ' <span class="badge bg-light text-dark">' + counts[it.key] + '</span>' +
+      '</button>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function rebalanceApplyFilter(filterKey) {
+  rebalanceState.filter = REBALANCE_RISK_LEVELS.concat(['all']).indexOf(filterKey) >= 0 || filterKey === 'all'
+    ? filterKey
+    : 'all';
+  rebalanceRenderSnapshots();
+}
+
+function rebalanceRenderSnapshots() {
+  const target = document.getElementById('rebalance-snapshots');
+  if (!target) return;
+  if (rebalanceState.healthLoading) {
+    target.innerHTML = rebalanceSkeletonListHTML(4);
+    return;
+  }
+  if (!rebalanceState.snapshots.length) {
+    target.innerHTML =
+      '<div class="text-muted small">Sin snapshots todavía. Pulsa <strong>🫀 Health Snapshot</strong> para calcularlos.</div>';
+    return;
+  }
+  const filtered = rebalanceState.snapshots.filter(function (s) {
+    return rebalanceState.filter === 'all' ? true : s.burnout_risk === rebalanceState.filter;
+  });
+  if (!filtered.length) {
+    target.innerHTML =
+      '<div class="text-muted small">No hay agentes en el nivel <strong>' +
+      rebalanceEscape(rebalanceState.filter) + '</strong>.</div>';
+    return;
+  }
+  let html = rebalanceRenderFilterBar();
+  html += '<div class="table-responsive"><table class="table table-sm table-striped align-middle">';
+  html +=
+    '<thead><tr>' +
+      '<th>Agente</th><th>Carga</th><th>Burnout</th>' +
+      '<th>Abiertos</th><th>Vencidos</th><th>Sentimiento</th>' +
+    '</tr></thead><tbody>';
+  for (let i = 0; i < filtered.length; i++) {
+    const s = filtered[i];
+    const risk = s.burnout_risk || 'low';
+    const badge = REBALANCE_RISK_BADGES[risk] || 'badge bg-secondary';
+    const label = REBALANCE_RISK_LABELS[risk] || risk;
+    const sentiment = typeof s.avg_sentiment === 'number' ? s.avg_sentiment.toFixed(2) : '—';
+    const loadClass = s.load_score >= 15 ? 'text-danger fw-bold' : (s.load_score >= 8 ? 'text-warning fw-bold' : '');
+    html +=
+      '<tr>' +
+        '<td><code>' + rebalanceEscape((s.agent_id || '').slice(0, 8)) + '</code></td>' +
+        '<td class="' + loadClass + '">' + rebalanceEscape(s.load_score) + '</td>' +
+        '<td><span class="' + badge + '">' + rebalanceEscape(label) + '</span></td>' +
+        '<td>' + rebalanceEscape(s.open_tickets) + '</td>' +
+        '<td>' + rebalanceEscape(s.breached_tickets) + '</td>' +
+        '<td>' + rebalanceEscape(sentiment) + '</td>' +
+      '</tr>';
+  }
+  html += '</tbody></table></div>';
+  target.innerHTML = html;
+}
+
+function rebalanceRenderRecommendations() {
+  const target = document.getElementById('rebalance-recs');
+  if (!target) return;
+  if (rebalanceState.recsLoading) {
+    target.innerHTML = rebalanceSkeletonListHTML(3);
+    return;
+  }
+  if (!rebalanceState.moves.length) {
+    target.innerHTML =
+      '<div class="text-muted small">Sin recomendaciones pendientes. Tu equipo está balanceado.</div>';
+    return;
+  }
+  let html = '<ul class="list-group">';
+  for (let i = 0; i < rebalanceState.moves.length; i++) {
+    const m = rebalanceState.moves[i];
+    html +=
+      '<li class="list-group-item d-flex justify-content-between align-items-start">' +
+        '<div class="ms-2 me-auto">' +
+          '<div class="fw-bold">Ticket <code>' + rebalanceEscape((m.ticket_id || '').slice(0, 8)) + '</code></div>' +
+          '<div class="small">de <code>' + rebalanceEscape((m.from_agent_id || '').slice(0, 8)) + '</code> ' +
+          '→ <code>' + rebalanceEscape((m.to_agent_id || '').slice(0, 8)) + '</code></div>' +
+          '<div class="small text-muted">' + rebalanceEscape(m.reason || '') + '</div>' +
+        '</div>' +
+      '</li>';
+  }
+  html += '</ul>';
+  target.innerHTML = html;
+}
+
+function rebalanceRenderApplyResult() {
+  const target = document.getElementById('rebalance-apply');
+  if (!target) return;
+  if (rebalanceState.applyLoading) {
+    target.innerHTML = rebalanceSpinnerHTML() + ' Aplicando rebalance real contra el backend…';
+    return;
+  }
+  const a = rebalanceState.applied;
+  if (!a) {
+    target.innerHTML = '<div class="text-muted small">Aún no se ha aplicado ningún rebalance.</div>';
+    return;
+  }
+  if (a.message && (!a.applied || a.applied.length === 0)) {
+    target.innerHTML =
+      '<div class="alert alert-secondary py-2 mb-0">' + rebalanceEscape(a.message) + '</div>';
+    return;
+  }
+  const count = typeof a.count === 'number' ? a.count : (a.applied ? a.applied.length : 0);
+  let html =
+    '<div class="alert alert-success py-2">' +
+      'Rebalance aplicado: <strong>' + rebalanceEscape(count) + '</strong> tickets reasignados.' +
+    '</div>';
+  if (a.applied && a.applied.length) {
+    html += '<ul class="list-group list-group-flush">';
+    for (let i = 0; i < a.applied.length; i++) {
+      const m = a.applied[i];
+      html +=
+        '<li class="list-group-item px-0 py-1 small">' +
+          '<code>' + rebalanceEscape((m.ticket_id || '').slice(0, 8)) + '</code>: ' +
+          '<code>' + rebalanceEscape((m.from_agent_id || '').slice(0, 8)) + '</code> → ' +
+          '<code>' + rebalanceEscape((m.to_agent_id || '').slice(0, 8)) + '</code> ' +
+          '<span class="text-muted">— ' + rebalanceEscape(m.reason || '') + '</span>' +
+        '</li>';
+    }
+    html += '</ul>';
+  }
+  target.innerHTML = html;
+}
+
+function rebalanceRenderLogs() {
+  const ul = document.getElementById('rebalance-logs');
+  if (!ul) return;
+  if (rebalanceState.logsLoading) {
+    ul.innerHTML =
+      '<li class="list-group-item">' + rebalanceSpinnerHTML() + ' Cargando historial…</li>';
+    return;
+  }
+  if (!rebalanceState.logs.length) {
+    ul.innerHTML = '<li class="list-group-item text-muted">Sin rebalances aún</li>';
+    return;
+  }
+  let html = '';
+  for (let i = 0; i < rebalanceState.logs.length; i++) {
+    const l = rebalanceState.logs[i];
+    html +=
+      '<li class="list-group-item">' +
+        '<div class="d-flex justify-content-between">' +
+          '<strong>' + rebalanceEscape(rebalanceFormatDate(l.created_at)) + '</strong>' +
+          '<span class="badge bg-secondary">' + rebalanceEscape((l.id || '').slice(0, 8)) + '</span>' +
+        '</div>' +
+        '<div class="small">Ticket <code>' + rebalanceEscape((l.ticket_id || '').slice(0, 8)) + '</code></div>' +
+        '<div class="small">' +
+          'de <code>' + rebalanceEscape((l.from_agent_id || '').slice(0, 8)) + '</code> → ' +
+          '<code>' + rebalanceEscape((l.to_agent_id || '').slice(0, 8)) + '</code>' +
+        '</div>' +
+        '<div class="small text-muted">' + rebalanceEscape(l.reason || '') + '</div>' +
+      '</li>';
+  }
+  ul.innerHTML = html;
+}
+
+function rebalanceRenderError() {
+  const target = document.getElementById('rebalance-error');
+  if (!target) return;
+  const e = rebalanceState.lastError;
+  if (!e) { target.innerHTML = ''; target.classList.add('d-none'); return; }
+  target.classList.remove('d-none');
+  target.innerHTML =
+    '<div class="alert alert-danger py-2 mb-2">' +
+      '<strong>Error ' + rebalanceEscape(e.status || '') + ':</strong> ' +
+      rebalanceEscape(e.message || 'Petición fallida') +
+    '</div>';
+}
+
 async function renderRebalance(el) {
   el.innerHTML = `
     <h2>⚖️ Rebalance AI de Equipo</h2>
-    <div class="card">
-      <p>Análisis de carga, riesgo de burnout y skill matching para redistribuir tickets automáticamente.</p>
-      <div class="btn-row">
-        <button onclick="loadHealth()">🫀 Health Snapshot</button>
-        <button onclick="loadRecommendations()">🔍 Recomendaciones</button>
-        <button onclick="applyRebalance()">⚡ Aplicar Rebalance</button>
+    <div id="rebalance-error" class="d-none"></div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <p class="mb-2">Análisis de carga, riesgo de burnout y skill matching para redistribuir tickets automáticamente.</p>
+        <div class="btn-row mb-2">
+          <button id="btn-health" data-idle-label="🫀 Health Snapshot" class="btn btn-primary btn-sm" onclick="loadHealth()">🫀 Health Snapshot</button>
+          <button id="btn-recs"   data-idle-label="🔍 Recomendaciones"  class="btn btn-info btn-sm"    onclick="loadRecommendations()">🔍 Recomendaciones</button>
+          <button id="btn-apply"  data-idle-label="⚡ Aplicar Rebalance" class="btn btn-warning btn-sm" onclick="applyRebalance()">⚡ Aplicar Rebalance</button>
+        </div>
+        <div id="rebalance-apply" class="mb-2"></div>
+        <h6 class="mt-3 mb-1">Snapshots de salud</h6>
+        <div id="rebalance-snapshots"></div>
+        <h6 class="mt-3 mb-1">Recomendaciones</h6>
+        <div id="rebalance-recs"></div>
       </div>
-      <pre id="rebalance-result"></pre>
     </div>
+
     <div class="card">
-      <h3>Historial de rebalances</h3>
-      <button onclick="loadRebalanceLogs()">🔄 Cargar logs</button>
-      <ul id="rebalance-logs" class="ticket-list"></ul>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">Historial de rebalances</h5>
+          <button id="btn-logs" data-idle-label="🔄 Cargar logs" class="btn btn-outline-secondary btn-sm" onclick="loadRebalanceLogs()">🔄 Cargar logs</button>
+        </div>
+        <ul id="rebalance-logs" class="list-group list-group-flush"></ul>
+      </div>
     </div>`;
+
+  // Render inicial: skeletons de los contenedores reactivos.
+  rebalanceRenderSnapshots();
+  rebalanceRenderRecommendations();
+  rebalanceRenderApplyResult();
+  rebalanceRenderError();
+
+  // Auto-load: historial en mount para acelerar la auditoría de producción.
+  await loadRebalanceLogs();
 }
 
 async function loadHealth() {
-  const r = await api('GET', '/api/agents/health');
-  document.getElementById('rebalance-result').textContent = JSON.stringify(r, null, 2);
+  rebalanceState.healthLoading = true;
+  rebalanceState.lastError = null;
+  rebalanceRenderError();
+  rebalanceRenderSnapshots();
+  rebalanceSetButtonLoading('btn-health', true, '🫀 Health Snapshot', '🫀 Calculando…');
+  try {
+    const res = await window.RebalanceService.getHealth();
+    if (!res.ok) {
+      rebalanceState.lastError = res.error;
+      rebalanceRenderError();
+      rebalanceState.snapshots = [];
+    } else {
+      rebalanceState.snapshots = (res.data && res.data.snapshots) || [];
+    }
+  } catch (e) {
+    rebalanceState.lastError = { status: 0, message: String(e && e.message ? e.message : e) };
+    rebalanceRenderError();
+    rebalanceState.snapshots = [];
+  } finally {
+    rebalanceState.healthLoading = false;
+    rebalanceSetButtonLoading('btn-health', false, '🫀 Health Snapshot');
+    rebalanceRenderSnapshots();
+  }
 }
 
 async function loadRecommendations() {
-  const r = await api('GET', '/api/agents/rebalance/recommend');
-  document.getElementById('rebalance-result').textContent = JSON.stringify(r, null, 2);
+  rebalanceState.recsLoading = true;
+  rebalanceState.lastError = null;
+  rebalanceRenderError();
+  rebalanceRenderRecommendations();
+  rebalanceSetButtonLoading('btn-recs', true, '🔍 Recomendaciones', '🔍 Analizando…');
+  try {
+    const res = await window.RebalanceService.getRecommendations();
+    if (!res.ok) {
+      rebalanceState.lastError = res.error;
+      rebalanceRenderError();
+      rebalanceState.moves = [];
+    } else {
+      rebalanceState.moves = (res.data && res.data.moves) || [];
+    }
+  } catch (e) {
+    rebalanceState.lastError = { status: 0, message: String(e && e.message ? e.message : e) };
+    rebalanceRenderError();
+    rebalanceState.moves = [];
+  } finally {
+    rebalanceState.recsLoading = false;
+    rebalanceSetButtonLoading('btn-recs', false, '🔍 Recomendaciones');
+    rebalanceRenderRecommendations();
+  }
 }
 
 async function applyRebalance() {
-  const r = await api('POST', '/api/agents/rebalance', {});
-  document.getElementById('rebalance-result').textContent = JSON.stringify(r, null, 2);
-  loadRebalanceLogs();
+  if (!confirm('¿Aplicar rebalance real? Esto reasignará tickets en producción.')) return;
+  rebalanceState.applyLoading = true;
+  rebalanceState.lastError = null;
+  rebalanceRenderError();
+  rebalanceRenderApplyResult();
+  rebalanceSetButtonLoading('btn-apply', true, '⚡ Aplicar Rebalance', '⚡ Aplicando…');
+  rebalanceSetButtonsDisabled(true);
+  try {
+    const res = await window.RebalanceService.applyRebalance();
+    if (!res.ok) {
+      rebalanceState.lastError = res.error;
+      rebalanceRenderError();
+      rebalanceState.applied = null;
+    } else {
+      rebalanceState.applied = res.data || null;
+      // Encadenamiento válido: tras aplicar, refrescar historial para auditoría.
+      await loadRebalanceLogs();
+    }
+  } catch (e) {
+    rebalanceState.lastError = { status: 0, message: String(e && e.message ? e.message : e) };
+    rebalanceRenderError();
+    rebalanceState.applied = null;
+  } finally {
+    rebalanceState.applyLoading = false;
+    rebalanceSetButtonLoading('btn-apply', false, '⚡ Aplicar Rebalance');
+    rebalanceSetButtonsDisabled(false);
+    rebalanceRenderApplyResult();
+  }
 }
 
 async function loadRebalanceLogs() {
-  const r = await api('GET', '/api/agents/rebalance/logs');
-  const ul = document.getElementById('rebalance-logs');
-  if (!r.logs?.length) { ul.innerHTML = '<li>Sin rebalances aún</li>'; return; }
-  ul.innerHTML = r.logs.map((l) => `
-    <li>
-      <strong>${l.created_at}</strong> — Ticket <code>${l.ticket_id.slice(0,8)}</code>
-      <br/>de ${l.from_agent_id.slice(0,8)} → ${l.to_agent_id.slice(0,8)}
-      <br/><small>${l.reason}</small>
-    </li>`).join('');
+  rebalanceState.logsLoading = true;
+  rebalanceRenderLogs();
+  rebalanceSetButtonLoading('btn-logs', true, '🔄 Cargar logs', '🔄 Cargando…');
+  try {
+    const res = await window.RebalanceService.getLogs();
+    if (!res.ok) {
+      rebalanceState.lastError = res.error;
+      rebalanceRenderError();
+      rebalanceState.logs = [];
+    } else {
+      rebalanceState.logs = (res.data && res.data.logs) || [];
+    }
+  } catch (e) {
+    rebalanceState.lastError = { status: 0, message: String(e && e.message ? e.message : e) };
+    rebalanceRenderError();
+    rebalanceState.logs = [];
+  } finally {
+    rebalanceState.logsLoading = false;
+    rebalanceSetButtonLoading('btn-logs', false, '🔄 Cargar logs');
+    rebalanceRenderLogs();
+  }
 }
 
 async function renderAutomaton(el) {
